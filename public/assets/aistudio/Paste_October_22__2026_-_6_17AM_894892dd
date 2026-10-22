@@ -1,0 +1,933 @@
+# MASTER BUILD PROMPT — CELEBRAI
+
+## AI-Powered Celebration & Event Planning Copilot
+
+You are acting as a senior full-stack engineer, AI application architect, product designer, security engineer, and QA engineer. Your task is to BUILD a complete, polished, functional, submission-ready web application for an AI hackathon.
+
+Do not merely explain the solution, generate a plan, or provide isolated code snippets. Implement the application directly in the currently open project and make all required changes to the repository.
+
+You have one primary generation opportunity. Make sensible decisions independently, implement the entire application in this pass, and prioritize working functionality over unnecessary complexity.
+
+---
+
+# 1. CHALLENGE AND OBJECTIVE
+
+**Challenge 5: Celebration & Event Planner**
+
+Build a GenAI-powered planning assistant that helps users organize weddings, birthdays, and community events with budgets, timelines, vendor checklists, and personalized ideas.
+
+The application must demonstrate:
+
+* Ability to build a smart, dynamic assistant.
+* Logical decision-making based on user context.
+* Practical, real-world usability.
+* Clean, readable, maintainable code.
+
+The AI code evaluator will assess these criteria. Ensure I get 100% in all of these criteria:
+
+**HIGH IMPACT**
+
+1. Code Quality.
+2. Problem Statement Alignment.
+
+**MEDIUM IMPACT**
+3. Security.
+4. Efficiency.
+
+**LOW IMPACT**
+5. Testing.
+6. Accessibility.
+
+Every major implementation decision must improve one or more of these criteria. Do not sacrifice functional completeness, code quality, or security for visual effects.
+
+# 2. PRODUCT IDENTITY
+
+Product name: **CelebrAI**
+
+Tagline: **Every celebration, beautifully planned.**
+
+Product description: An intelligent event-planning copilot that transforms a user's event requirements into a coordinated, personalized, and actionable plan.
+
+Target users:
+
+* Couples planning weddings and related ceremonies.
+* Individuals organizing birthdays and anniversaries.
+* Families organizing private celebrations.
+* Community organizers planning cultural events, festivals, reunions, and gatherings.
+
+Core product principle:
+
+**The AI must help users make decisions and take action, not merely produce generic conversational responses.**
+
+The dashboard, budget, timeline, vendor checklist, and AI recommendations must work together as parts of one coherent event plan.
+
+# 3. FIRST ACTION: INSPECT THE EXISTING PROJECT
+
+Before making changes:
+
+1. Inspect the current project structure, package.json, installed dependencies, available framework, entry points, and existing code.
+2. Determine how the current environment expects the application to run.
+3. Preserve useful existing configuration and functionality.
+4. If the repository is empty or contains only boilerplate, initialize a suitable application within the existing repository.
+5. Prefer the existing compatible stack. If a fresh setup is required, use React, TypeScript, and Vite when supported by the environment.
+6. Use the available package manager and avoid unnecessary dependencies.
+7. Inspect the AI Studio environment for its supported Gemini integration and available environment-variable mechanisms.
+
+Do not replace working configuration blindly. Do not create a second nested project or put the actual application in an unrelated directory.
+
+After inspection, proceed directly to implementation. Do not stop to ask me to approve an architecture or select between technologies.
+
+# 4. REQUIRED PRODUCT EXPERIENCE
+
+Build a complete single-page application with a polished, responsive interface.
+
+Use a cohesive design system with:
+
+* Warm ivory or neutral backgrounds.
+* Deep forest green or dark emerald as the primary accent.
+* Restrained champagne or gold accents.
+* Elegant editorial headings and readable sans-serif body typography.
+* Rounded cards, subtle borders, consistent spacing, and restrained shadows.
+* Clear visual hierarchy and a premium event-planning aesthetic.
+* Attractive icons from an already available icon library, if present.
+
+Avoid a generic developer dashboard, excessive gradients, excessive glassmorphism, emoji-heavy interfaces, oversized empty areas, and unnecessary animations.
+
+The application should look like a thoughtfully designed product, not an unfinished prototype.
+
+Use CSS or the existing styling system. Do not depend on remote images, large assets, paid APIs, or external fonts for the core experience. If imagery is unavailable, use tasteful CSS illustrations, shapes, or existing local assets.
+
+## 4.1 Main application layout
+
+Create the following functional navigation:
+
+1. Overview
+2. My Events
+3. Budget
+4. Timeline
+5. Vendors & Tasks
+6. AI Planning Assistant
+
+Use a consistent sidebar on desktop and an appropriate compact navigation on smaller screens.
+
+The header should include:
+
+* CelebrAI branding.
+* Current event selector when events exist.
+* A clear action to create a new event.
+* A sensible account-free application experience.
+
+All navigation items must work. Do not create decorative navigation elements that lead nowhere.
+
+# 5. EVENT CREATION WIZARD
+
+Implement a real, multi-step event creation flow with validation, progress indication, Back and Continue controls, and a final Create Event action.
+
+Collect the following information.
+
+### Step 1: Event basics
+
+* Event name.
+* Event type: Wedding, Birthday, Anniversary, Community Event, or Other.
+* Event date.
+* Optional end date or multi-day event indicator.
+* City or event location.
+* Indoor, outdoor, or mixed venue preference.
+
+### Step 2: Guest and budget details
+
+* Expected guest count.
+* Total budget.
+* Currency, with INR as the default and other common currencies available.
+* Budget flexibility: Strict, Moderate, or Flexible.
+* Planning stage or approximate time remaining before the event.
+
+### Step 3: Style and preferences
+
+* Preferred style: Elegant, Traditional, Modern, Minimalist, Rustic, Festive, Cultural, or Custom.
+* Optional color palette.
+* Optional theme description.
+* Dietary considerations.
+* Accessibility requirements.
+* Cultural or religious considerations, entered voluntarily.
+* Must-have activities.
+* Additional notes.
+
+### Step 4: Review and create
+
+Display a clean summary of all entered details.
+
+Allow users to return to previous steps and edit information.
+
+On confirmation:
+
+1. Validate the form.
+2. Create a uniquely identified event.
+3. Generate a sensible initial plan using deterministic local logic.
+4. Initialize a budget breakdown, timeline, vendor checklist, and suggested activities.
+5. Persist the event.
+6. Open the event dashboard with a useful summary and next actions.
+
+The application must be useful even when no AI API key is configured.
+
+Do not make AI generation a prerequisite for creating an event.
+
+# 6. INTELLIGENT PLANNING ENGINE
+
+Implement a reusable planning engine that transforms event details into actionable recommendations.
+
+Use separate, typed functions for:
+
+* Budget allocation.
+* Timeline generation.
+* Vendor checklist generation.
+* Activity and idea generation.
+* Planning readiness calculation.
+* Context-aware priority calculation.
+
+The planning engine must use event type, date, guest count, budget, preferences, and location where relevant.
+
+Do not simply return identical lists for every event.
+
+## 6.1 Event-specific planning rules
+
+For weddings, consider:
+
+* Venue and catering.
+* Photography and videography.
+* Attire and accessories.
+* Decoration and flowers.
+* Ceremony requirements.
+* Invitations and guest coordination.
+* Music or entertainment.
+* Transportation and accommodation where relevant.
+* Makeup and styling.
+* Payments, contracts, and final confirmations.
+
+For birthdays, consider:
+
+* Venue or home setup.
+* Theme and decorations.
+* Cake and food.
+* Invitations.
+* Entertainment and activities.
+* Photography.
+* Party favors where appropriate.
+* Age-appropriate considerations when age information is voluntarily supplied.
+* Setup and cleanup.
+
+For community events, consider:
+
+* Venue and permissions.
+* Organizer and volunteer coordination.
+* Equipment and seating.
+* Publicity and registrations.
+* Food and refreshments.
+* Accessibility and attendee safety.
+* Program scheduling.
+* Waste management and cleanup.
+* Contingency planning.
+
+For anniversaries and other events, produce an appropriate checklist instead of forcing them into an unrelated template.
+
+# 7. BUDGET MANAGEMENT
+
+The budget module is a core feature and must be genuinely functional.
+
+Implement:
+
+1. Total planned budget.
+2. Category-wise allocations.
+3. Estimated expenses.
+4. Actual expenses.
+5. Amount paid.
+6. Remaining budget.
+7. Amount committed to vendors.
+8. Budget utilization percentage.
+9. Category-wise spending visualization.
+10. Clear warnings when planned or actual expenses exceed available funds.
+
+Suggested categories should depend on event type.
+
+For example, a wedding may allocate funds to venue, catering, photography, attire, decoration, entertainment, transportation, and contingency.
+
+A birthday may allocate funds to venue, food, cake, decoration, activities, photography, and miscellaneous expenses.
+
+Community events may include venue, equipment, publicity, refreshments, permissions, logistics, and contingency.
+
+### Required budget logic
+
+* Calculate remaining budget from actual recorded expenses, not an unrelated hardcoded figure.
+* Distinguish estimates from actual spending.
+* Distinguish paid amounts from outstanding amounts.
+* Prevent invalid negative amounts.
+* Use a sensible contingency allocation.
+* Normalize category allocations so their total matches the intended allocation amount.
+* Recalculate summaries immediately when expenses change.
+* Clearly distinguish planned, committed, spent, paid, and remaining amounts.
+* Avoid counting the same expense twice.
+* Format amounts using the event's selected currency.
+* Use safe numeric calculations and avoid floating-point rounding errors in money calculations where practical.
+
+Allow users to add, edit, and delete expense entries with a category, description, amount, date, and payment status.
+
+Allow users to edit category estimates.
+
+When expenses exceed budget, identify the overspending and provide actionable suggestions to reduce costs.
+
+Do not recommend cuts to accessibility, essential safety, or legal requirements as ordinary cost-saving measures.
+
+Persist all changes.
+
+# 8. DYNAMIC EVENT TIMELINE
+
+Generate a realistic timeline using the event date and type.
+
+Timeline items must have:
+
+* Task title.
+* Description.
+* Due date.
+* Priority.
+* Status: Not Started, In Progress, or Completed.
+* Optional category.
+* Optional dependency or notes.
+
+Use date-aware rules rather than a static list with arbitrary dates.
+
+Examples:
+
+* Major venue and vendor arrangements occur earlier.
+* Invitations are prepared before the event.
+* Final guest confirmations occur before the event.
+* Final vendor confirmations and logistics occur close to the date.
+* Setup, execution, and cleanup occur on the appropriate day.
+
+Adapt the timeline to the remaining time.
+
+If the event is less than a typical planning window away, prioritize urgent tasks and flag compressed deadlines. Do not create deadlines in the past without explanation. For overdue or already-passed tasks, show an appropriate status or recovery recommendation.
+
+For multi-day events, account for the event duration where relevant.
+
+Provide:
+
+* Upcoming tasks.
+* Overdue tasks.
+* Completed tasks.
+* A chronological timeline.
+* A way to mark tasks complete or reopen them.
+* A way to edit due dates and priorities.
+* A useful empty state when no tasks exist.
+
+Recalculate progress immediately after changes.
+
+# 9. VENDOR AND TASK MANAGEMENT
+
+Create a usable vendor management system.
+
+Each vendor record should support:
+
+* Vendor or service name.
+* Service category.
+* Contact name.
+* Phone or email, optional.
+* Estimated cost.
+* Agreed cost.
+* Amount paid.
+* Booking status: Researching, Contacted, Negotiating, Booked, or Cancelled.
+* Payment status.
+* Contract or confirmation notes.
+* Event-related notes.
+
+Users must be able to add, edit, and remove vendor records.
+
+Show booking status and payment information clearly.
+
+Vendor costs must integrate correctly with the budget without automatically double-counting amounts already recorded as expenses.
+
+Provide useful category-based vendor suggestions, but clearly distinguish suggested vendor types from actual businesses.
+
+Do not invent real vendor identities, contact details, availability, prices, or reviews.
+
+The application may suggest search terms or explain what to compare when selecting a vendor.
+
+Provide an event-specific checklist of vendors and operational tasks. Allow users to mark items complete, edit them, and add custom tasks.
+
+# 10. AI PLANNING ASSISTANT — THE GENAI DIFFERENTIATOR
+
+Implement an AI-powered assistant that can use the current event's context.
+
+The assistant should understand:
+
+* Event type.
+* Date and time constraints.
+* Guest count.
+* Budget and spending position.
+* Location.
+* Style and preferences.
+* Dietary and accessibility requirements.
+* Existing tasks.
+* Vendor booking status.
+* Outstanding decisions.
+
+The assistant should provide useful, specific answers to questions such as:
+
+* "Plan a beautiful wedding for 150 guests within ₹8,00,000."
+* "How can I reduce costs without compromising the guest experience?"
+* "What are my five most urgent tasks?"
+* "Suggest a traditional but modern birthday theme."
+* "Create a vegetarian menu for my event."
+* "What vendors do I still need to book?"
+* "Give me a rain contingency plan for an outdoor event."
+* "How should I redistribute my remaining budget?"
+* "What should I finish in the next seven days?"
+* "Suggest three activities appropriate for my event and guest count."
+
+### AI implementation requirements
+
+Inspect the actual AI integration available in the environment and implement it using a supported Gemini SDK or integration when feasible.
+
+Use the environment's intended server-side secret mechanism or secure API-key configuration. Never hardcode API keys or expose server-side secrets in browser-delivered source.
+
+Do not assume a secret exists. If no API key is configured, the app must continue working and clearly communicate that AI assistance requires configuration.
+
+Do not fake a successful Gemini response.
+
+If AI Studio provides a supported way to access Gemini without a separately configured key, use that supported mechanism. Do not invent unavailable environment variables, SDK methods, backend routes, or platform capabilities.
+
+Implement a clearly separated AI service layer, independent of the UI.
+
+The AI service must:
+
+1. Receive a structured event context.
+2. Build a bounded, specific prompt.
+3. Request practical recommendations.
+4. Validate and safely parse the response.
+5. Handle malformed output and API errors.
+6. Return a typed result or a recoverable error.
+7. Provide deterministic local recommendations when appropriate.
+
+Use a lightweight context object. Do not send the entire application state or all historical conversations with every request.
+
+Limit unnecessary calls. Avoid automatic repeated generation, polling, recursive calls, and unbounded retries.
+
+Display a loading state while a request is running and disable duplicate submissions.
+
+Provide an explicit retry option when an AI request fails.
+
+If the application supports a backend, keep privileged API operations server-side. If the platform only supports a frontend, use its supported integration securely and clearly document any security limitations. Do not falsely claim client-side secrets are secure.
+
+### AI response quality
+
+AI recommendations must:
+
+* Respect the stated budget.
+* Respect the selected event type.
+* Use the event date and remaining planning time.
+* Consider guest count.
+* Respect stated dietary and accessibility needs.
+* Avoid unsupported factual claims.
+* Identify assumptions where relevant.
+* Prefer actionable recommendations over generic motivational language.
+* Clearly label illustrative cost estimates.
+* Avoid claiming actual vendor availability or real-world bookings.
+
+Do not treat AI-generated cost estimates as verified quotations.
+
+### Structured AI output
+
+Where structured output is appropriate, define TypeScript interfaces or schemas for recommendations, tasks, budget suggestions, and ideas.
+
+Validate AI-generated data before displaying it or applying it to the event.
+
+Never execute AI-generated code or treat generated text as trusted HTML.
+
+Allow users to review recommendations before applying changes to their plan. Do not silently overwrite user-created data.
+
+### Conversation experience
+
+Create a polished conversational interface with:
+
+* A welcoming initial message.
+* Suggested prompt chips.
+* A message history for the current session.
+* User and assistant message styling.
+* Loading and error states.
+* Clear, readable responses.
+* An input area that supports Enter to send and Shift+Enter for a new line.
+* A visible indication of whether live AI assistance is available or local assistance is being used.
+
+When possible, keep the assistant aware of recent conversation context without sending excessive history.
+
+If no AI service is configured, offer useful rule-based assistance rather than leaving an unusable chat box. Make it clear that these responses are local fallback recommendations, not live Gemini responses.
+
+# 11. OVERVIEW DASHBOARD
+
+The Overview page must provide an at-a-glance view of the selected event.
+
+Include:
+
+* Event name, type, date, and location.
+* Days remaining, with correct handling for past events.
+* Total budget.
+* Actual spending.
+* Remaining budget.
+* Task completion progress.
+* Vendor booking progress.
+* Upcoming deadlines.
+* Urgent or overdue items.
+* Recommended next actions.
+* Quick links to the main planning sections.
+
+Calculate metrics from actual application state.
+
+Do not use hardcoded dashboard numbers or static progress percentages.
+
+For a newly created event, show meaningful next steps.
+
+For an event with no data, show a helpful empty state rather than zero-filled charts without context.
+
+When multiple events exist, provide a usable event selector and a My Events page with create, select, and delete functionality. Confirm before destructive actions.
+
+# 12. PERSONALIZED IDEAS AND RECOMMENDATIONS
+
+Provide a dedicated area for ideas such as:
+
+* Themes and decorations.
+* Menu concepts.
+* Entertainment.
+* Guest engagement.
+* Cultural touches where requested.
+* Sustainable planning.
+* Weather contingencies.
+* Budget-saving alternatives.
+* Personalized activities.
+
+Recommendations must use event context and have a practical explanation.
+
+Allow users to save, unsave, or mark ideas as used.
+
+Clearly distinguish general suggestions from confirmed services or real-world facts.
+
+Do not make assumptions about a user's religion, culture, dietary preferences, or family circumstances based solely on their name or location. Use preferences explicitly provided by the user.
+
+# 13. DATA MODEL AND PERSISTENCE
+
+Design a clean, typed domain model.
+
+At minimum, define appropriate types for:
+
+* Event.
+* EventPreferences.
+* BudgetCategory.
+* Expense.
+* TimelineTask.
+* Vendor.
+* ChecklistItem.
+* SavedIdea.
+* ChatMessage.
+* PlanningRecommendation.
+
+Use unique identifiers for records. Prefer standard UUID generation or another reliable, collision-resistant identifier mechanism supported by the environment.
+
+Persist event data and user changes using a sensible storage architecture:
+
+* Prefer an existing configured database if the project already has one.
+* Otherwise, use browser localStorage for this account-free, single-browser application.
+* Include a small persistence abstraction so the UI and planning engine do not depend directly on storage details.
+
+Validate stored data when loading it. Handle malformed or inaccessible storage gracefully.
+
+Use versioned storage or a migration-friendly structure where practical.
+
+Handle the case in which localStorage is unavailable or full. Show a useful error and avoid pretending that a failed save succeeded.
+
+Do not store secrets in localStorage.
+
+Provide:
+
+* Create event.
+* Read event.
+* Update event.
+* Delete event.
+* Persist budget changes.
+* Persist tasks and vendor updates.
+* Persist saved ideas.
+
+Include a way to export an event plan as a downloadable JSON backup and a print-friendly event summary. Validate imported JSON before accepting it if an import feature is implemented.
+
+Keep the project lightweight and suitable for the repository size limit.
+
+# 14. VISUAL DESIGN AND USER EXPERIENCE
+
+The interface must be responsive and usable on desktop, tablet, and mobile.
+
+Use consistent:
+
+* Typography.
+* Spacing.
+* Color tokens.
+* Button styles.
+* Form fields.
+* Status badges.
+* Card layouts.
+* Modal and confirmation patterns.
+* Error and success feedback.
+* Loading indicators.
+
+Include polished empty states for:
+
+* No events.
+* No expenses.
+* No vendors.
+* No upcoming tasks.
+* No saved ideas.
+* Unavailable AI service.
+
+Make primary actions obvious.
+
+Use clear labels rather than icon-only controls wherever possible.
+
+Forms must preserve user input when validation fails.
+
+Provide meaningful feedback after successful and unsuccessful operations.
+
+Avoid browser alerts for ordinary application feedback; use accessible inline messages, toast notifications, or appropriate confirmation dialogs.
+
+Do not add features that look clickable but do nothing.
+
+All primary user journeys must work from beginning to end.
+
+# 15. CODE QUALITY — HIGH-IMPACT REQUIREMENT
+
+Write professional, maintainable code.
+
+Use:
+
+* Strict TypeScript settings when compatible with the existing project.
+* Explicit types for domain entities and important function contracts.
+* Small, cohesive components.
+* Separation of UI, domain logic, persistence, and AI integration.
+* Reusable components for repeated patterns.
+* Meaningful function and variable names.
+* Consistent error-handling conventions.
+* Small pure functions for deterministic calculations.
+* Centralized validation and formatting utilities.
+
+Suggested project organization for a fresh React/TypeScript application:
+
+src/
+components/
+layout/
+common/
+events/
+dashboard/
+budget/
+timeline/
+vendors/
+assistant/
+pages/
+hooks/
+services/
+ai/
+storage/
+planning/
+domain/
+types.ts
+validation.ts
+utils/
+styles/
+App.tsx
+main.tsx
+
+Adapt this structure to the framework already present. Do not create empty files simply to imitate this tree.
+
+Avoid:
+
+* A monolithic App component containing the entire application.
+* Giant functions that combine UI, AI requests, calculations, and persistence.
+* Excessive prop drilling where a simple context or focused hook is appropriate.
+* Duplicate implementations of business rules.
+* Unnecessary dependencies.
+* Dead code.
+* Unused imports and variables.
+* `any` types where a proper type can be used.
+* Suppressing TypeScript errors to make the build pass.
+* Broad exception swallowing.
+* Fake backend services.
+* Hardcoded demo metrics.
+* Placeholder buttons.
+* TODO-only implementations of required features.
+
+Keep business rules independent from React components wherever possible so they can be tested without rendering the UI.
+
+# 16. SECURITY REQUIREMENTS
+
+Implement sensible security practices throughout.
+
+1. Never hardcode API keys, passwords, or credentials.
+2. Never expose server-side secrets to the browser.
+3. Validate user inputs at appropriate boundaries.
+4. Treat imported files, stored data, and AI responses as untrusted.
+5. Render user-generated text as text, not executable HTML.
+6. Do not use `eval`, `new Function`, or equivalent dynamic execution.
+7. Do not use unsafe HTML injection for user or AI content.
+8. Validate imported JSON structure, types, record identifiers, and numeric values.
+9. Avoid logging personal event details, contact information, or credentials unnecessarily.
+10. Do not request personal information unrelated to event planning.
+11. Use safe links and appropriate URL handling if external links are introduced.
+12. Do not introduce unnecessary third-party scripts or tracking.
+13. Handle API errors without exposing secrets or internal stack traces to users.
+14. Add an appropriate `.gitignore`.
+15. Ensure `.env`, `.env.local`, credentials, generated build output, and dependency directories are not committed.
+16. Provide a safe `.env.example` containing only variable names and placeholder descriptions, never real secrets.
+17. If a backend is present, apply appropriate input validation and restrict permitted operations.
+18. Do not claim data is encrypted, backed up, or synchronized unless that functionality actually exists.
+
+Explain in the README that localStorage data remains in the user's browser and is not automatically synchronized or backed up.
+
+# 17. EFFICIENCY REQUIREMENTS
+
+Optimize for simplicity and reliability.
+
+* Keep dependencies minimal.
+* Avoid large UI frameworks if the existing project does not need them.
+* Use lightweight visualizations or CSS-based charts when practical.
+* Avoid repeated full-application recalculation when focused updates suffice.
+* Use memoization only where it provides a meaningful benefit.
+* Avoid unnecessary AI calls.
+* Avoid continuously running effects or timers.
+* Avoid excessive state duplication.
+* Use efficient collection operations and stable identifiers.
+* Avoid storing redundant derived metrics when they can be calculated reliably.
+* Avoid large binary assets and unnecessary generated files.
+* Do not include `node_modules`, build artifacts, caches, or secrets in the repository.
+
+Prefer correct, maintainable code over premature optimization.
+
+# 18. ACCESSIBILITY REQUIREMENTS
+
+Implement accessibility as part of the product, not as an afterthought.
+
+* Use semantic HTML.
+* Provide explicit labels for form inputs.
+* Ensure all major actions can be performed with a keyboard.
+* Provide visible focus indicators.
+* Maintain readable contrast.
+* Do not communicate status using color alone.
+* Provide accessible names for icon buttons.
+* Use logical heading hierarchy.
+* Use appropriate dialog semantics and focus handling.
+* Associate validation errors with their inputs.
+* Announce important asynchronous status changes where appropriate.
+* Respect reduced-motion preferences if animations are used.
+* Ensure charts and progress indicators have textual equivalents.
+* Ensure mobile navigation is usable with assistive technology.
+
+Use native HTML controls when practical rather than unnecessarily complex custom controls.
+
+# 19. TESTING AND VALIDATION
+
+Testing has lower stated impact than the first two criteria, but it must still be implemented properly.
+
+Inspect the existing test setup. If the project is a fresh React/TypeScript/Vite app, use a lightweight compatible testing setup, such as Vitest, for domain logic.
+
+Write meaningful tests for important pure functions.
+
+At minimum, cover:
+
+* Budget allocation totals and rounding.
+* Remaining budget calculations.
+* Paid and unpaid expense calculations.
+* Overspending detection.
+* Event-date and overdue-task calculations.
+* Event-type-specific checklist generation.
+* Planning behavior for events with short lead times.
+* Input validation.
+* Malformed persisted data.
+* AI-response validation and failure handling.
+
+Test edge cases, including:
+
+* Zero guests.
+* Zero or invalid budgets.
+* Missing optional fields.
+* Past event dates.
+* Very short planning windows.
+* Empty task and vendor lists.
+* Budget allocation rounding.
+* Corrupted saved data.
+* Missing AI configuration.
+* Invalid AI output.
+
+Do not write tests that merely assert that `true` equals `true`.
+
+If browser-level testing tools are already available, use them where practical. Do not introduce a heavyweight browser automation dependency solely for this submission.
+
+Add useful package scripts for development, building, and testing.
+
+# 20. README AND REPOSITORY REQUIREMENTS
+
+Create a complete root-level `README.md`.
+
+The README must explain:
+
+1. Project title and description.
+2. Chosen vertical: Celebration & Event Planner.
+3. Problem statement and intended users.
+4. Key features.
+5. Technical architecture.
+6. Approach and planning logic.
+7. How event data flows through the application.
+8. How the AI assistant works.
+9. How deterministic fallback behavior works.
+10. Data persistence and its limitations.
+11. Assumptions made.
+12. Security considerations.
+13. Accessibility considerations.
+14. Testing strategy and how to run tests.
+15. Prerequisites.
+16. Installation instructions.
+17. Development and production build commands.
+18. Optional AI configuration, including where to configure the supported API key or integration.
+19. Deployment instructions appropriate to the actual project.
+20. Known limitations and future improvements.
+
+Be accurate. Never claim a test passed unless it was run successfully. Never claim a live AI integration exists unless it has actually been implemented.
+
+Add a `.gitignore` and a `.env.example` if appropriate.
+
+The hackathon imposes these strict repository requirements:
+
+* Repository must be PUBLIC.
+* Repository must contain exactly ONE branch.
+* Repository size must remain LESS THAN 10 MB.
+* Complete project code must be included.
+* A README must be present.
+
+Do not add large binaries, datasets, node_modules, build artifacts, or unnecessary media.
+
+Do not create a second branch.
+
+Do not commit credentials or real API keys.
+
+Do not claim to have created a public GitHub repository or pushed code unless you actually have access to GitHub and have completed those operations successfully.
+
+If GitHub access is unavailable, create the project files in the currently open repository and leave the project ready for me to commit and push.
+
+# 21. IMPLEMENTATION PRIORITY
+
+If trade-offs become necessary, follow this order:
+
+**Priority 1 — Essential functionality**
+
+* Working application startup.
+* Event creation and selection.
+* Context-aware planning.
+* Budget management.
+* Timeline and task management.
+* Vendor and checklist management.
+* Overview dashboard.
+* Persistent state.
+* AI assistant with graceful fallback.
+
+**Priority 2 — High-impact engineering quality**
+
+* Modular architecture.
+* Strong typing.
+* Correct business logic.
+* Secure API handling.
+* Reliable error states.
+* Accurate README.
+
+**Priority 3 — Medium-impact quality**
+
+* Efficient calculations.
+* Minimal dependencies.
+* Input validation.
+* Reliable storage.
+* Meaningful automated tests.
+
+**Priority 4 — Additional polish**
+
+* Accessibility refinements.
+* Responsive details.
+* Print and export.
+* Thoughtful empty states and feedback.
+* Visual refinements.
+
+Do not spend time on unrelated features such as authentication, subscriptions, payment gateways, real vendor marketplace integrations, social feeds, or multi-user collaboration unless they are already implemented and genuinely required.
+
+# 22. DEFINITION OF DONE
+
+The project is complete only when the following checklist has been addressed.
+
+### Product functionality
+
+* [ ] Users can create an event using the wizard.
+* [ ] Users can create and manage multiple events.
+* [ ] Each event gets context-specific planning recommendations.
+* [ ] The budget reflects actual expense changes.
+* [ ] Overspending is detected correctly.
+* [ ] Timeline tasks are date-aware and editable.
+* [ ] Vendor records and booking statuses work.
+* [ ] Checklist items can be completed and edited.
+* [ ] The AI assistant uses relevant event context when available.
+* [ ] The local fallback works without live AI access.
+* [ ] Changes survive page reloads when storage is available.
+* [ ] Export and print functionality work if implemented.
+* [ ] Navigation and primary buttons work.
+* [ ] Errors and empty states are handled.
+
+### Engineering quality
+
+* [ ] Components and services are appropriately separated.
+* [ ] TypeScript types represent the domain accurately.
+* [ ] Business logic is independently testable.
+* [ ] Security requirements are addressed.
+* [ ] No secrets are committed.
+* [ ] No important feature relies on hardcoded dashboard values.
+* [ ] No obvious placeholder functionality remains.
+* [ ] The README describes the actual implementation.
+
+### Validation
+
+* [ ] Dependencies are installed or installation instructions are provided.
+* [ ] The production build is run if the environment permits.
+* [ ] Available automated tests are run.
+* [ ] Type errors and build errors are fixed.
+* [ ] Important edge cases are tested.
+* [ ] The repository is kept lightweight.
+
+Treat these as implementation requirements, not a checklist to copy into the README and leave unfinished.
+
+# 23. FINAL EXECUTION INSTRUCTIONS
+
+Now build the application.
+
+Work directly in the currently open repository.
+
+Do not respond with a proposed architecture instead of implementing it.
+
+Do not ask me to approve individual implementation decisions.
+
+Do not stop after creating a landing page, a dashboard mockup, or a few disconnected components.
+
+Do not leave the application dependent on an unconfigured AI API merely to demonstrate basic functionality.
+
+Do not fabricate successful tests, API calls, repository operations, or deployment results.
+
+Implement all essential features in this pass. After implementation, inspect the resulting code, resolve integration problems, run available validation commands, and make a final cleanup pass.
+
+If an optional feature cannot be completed reliably, omit it or clearly disclose the limitation rather than shipping a broken simulation.
+
+When finished, provide a concise implementation report containing:
+
+* What was built.
+* The main files and architecture.
+* Implemented AI integration and configuration requirements.
+* Tests and build commands actually executed, with honest results.
+* Any remaining limitations.
+* The exact commands I need to run, if any, to start the app and commit and push it.
+
+**Final principle: Build a cohesive, working, secure, maintainable event-planning product whose implementation directly demonstrates the challenge requirements. Favor genuine functionality, accurate logic, and excellent code quality over superficial feature count.**

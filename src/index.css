@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  
+  --color-forest-950: #0a1f16;
+  --color-forest-900: #0f2b20;
+  --color-forest-800: #143c2c;
+  --color-forest-700: #1a4d39;
+  --color-forest-600: #24634a;
+  --color-forest-500: #2f7e5f;
+
+  --color-gold-100: #fbf6ec;
+  --color-gold-200: #f6ebd1;
+  --color-gold-300: #e8d3a1;
+  --color-gold-400: #d6b86f;
+  --color-gold-500: #bd9b46;
+  --color-gold-600: #9e7f33;
+
+  --color-cream-50: #fdfbf7;
+  --color-cream-100: #faf7f2;
+  --color-cream-200: #f3ede2;
+  --color-cream-300: #e8dfcf;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-cream-100);
+    color: #1a2320;
+  }
+
+  h1, h2, h3, .font-editorial {
+    font-family: var(--font-serif);
+  }
+}
+
+/* Print styles for clean exports */
+@media print {
+  aside, nav, button, .no-print {
+    display: none !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .print-page {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "CelebrAI",
+  "description": "Intelligent celebration & event planning copilot that transforms event requirements into coordinated budgets, date-aware timelines, vendor checklists, and personalized recommendations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
