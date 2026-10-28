@@ -346,8 +346,108 @@ describe('Local Planning Engine Fallback Assistant', () => {
     expect(response.text.toLowerCase()).toContain('weather');
   });
 
-  it('formats currency correctly for INR and USD', () => {
+  it('formats currency correctly for INR, USD, EUR, GBP, CAD, AUD, AED', () => {
     expect(formatCurrency(100000, 'INR')).toBe('₹1,00,000');
     expect(formatCurrency(5000, 'USD')).toBe('$5,000');
+    expect(formatCurrency(2500, 'EUR')).toBe('€2,500');
+    expect(formatCurrency(1800, 'GBP')).toBe('£1,800');
+    expect(formatCurrency(3200, 'CAD')).toBe('CA$3,200');
+    expect(formatCurrency(4100, 'AUD')).toBe('A$4,100');
+    expect(formatCurrency(15000, 'AED')).toBe('AED 15,000');
+  });
+
+  it('answers cost reduction queries while protecting safety and accessibility', () => {
+    const budgetMetrics = calculateBudgetMetrics(100000, [], [], []);
+    const response = generateLocalAssistantResponse('How can I reduce costs without compromising guest experience?', mockWeddingEvent, [], [], budgetMetrics);
+
+    expect(response.text.toLowerCase()).toContain('cost');
+    expect(response.text.toLowerCase()).toContain('accessibility');
+  });
+
+  it('answers vendor status query correctly', () => {
+    const vendors: Vendor[] = [
+      { id: 'v1', eventId: 'e', name: 'Grand Ballroom', category: 'Venue', estimatedCost: 50000, agreedCost: 50000, amountPaid: 25000, bookingStatus: 'booked', paymentStatus: 'partial' },
+      { id: 'v2', eventId: 'e', name: 'Master Chef Catering', category: 'Catering', estimatedCost: 30000, agreedCost: 0, amountPaid: 0, bookingStatus: 'negotiating', paymentStatus: 'pending' },
+    ];
+    const budgetMetrics = calculateBudgetMetrics(100000, [], [], vendors);
+    const response = generateLocalAssistantResponse('What vendors do I still need to book?', mockWeddingEvent, [], vendors, budgetMetrics);
+
+    expect(response.text).toContain('Grand Ballroom');
+    expect(response.text).toContain('Master Chef Catering');
+  });
+});
+
+describe('Extended Domain Validation & Specialized Timelines', () => {
+  it('validates expense creation boundaries', () => {
+    const invalidAmount = validateExpense({
+      description: 'Lawn fee',
+      amount: -100,
+      categoryId: 'cat-1',
+      date: '2026-11-01',
+    });
+    expect(invalidAmount.isValid).toBe(false);
+    expect(invalidAmount.errors.amount).toBeDefined();
+
+    const missingDesc = validateExpense({
+      description: '',
+      amount: 500,
+      categoryId: 'cat-1',
+      date: '2026-11-01',
+    });
+    expect(missingDesc.isValid).toBe(false);
+    expect(missingDesc.errors.description).toBeDefined();
+  });
+
+  it('validates vendor creation boundaries', () => {
+    const emptyName = validateVendor({
+      name: '',
+      category: 'Venue',
+    });
+    expect(emptyName.isValid).toBe(false);
+    expect(emptyName.errors.name).toBeDefined();
+
+    const negativeAgreed = validateVendor({
+      name: 'Studio',
+      category: 'Media',
+      agreedCost: -500,
+    });
+    expect(negativeAgreed.isValid).toBe(false);
+    expect(negativeAgreed.errors.agreedCost).toBeDefined();
+  });
+
+  it('generates birthday-specific tasks including cake order', () => {
+    const bdayEvent: Event = {
+      ...mockWeddingEvent,
+      type: 'birthday',
+      name: 'Rohan 10th Birthday',
+    };
+    const tasks = generateTimeline(bdayEvent);
+    expect(tasks.some((t) => t.title.toLowerCase().includes('cake'))).toBe(true);
+  });
+
+  it('generates community-specific tasks including municipal permits and volunteer safety', () => {
+    const commEvent: Event = {
+      ...mockWeddingEvent,
+      type: 'community',
+      name: 'Neighborhood Spring Festival',
+    };
+    const tasks = generateTimeline(commEvent);
+    expect(tasks.some((t) => t.title.toLowerCase().includes('permit'))).toBe(true);
+    expect(tasks.some((t) => t.title.toLowerCase().includes('safety'))).toBe(true);
+  });
+
+  it('calculates celebration ready status when tasks and vendors are completed', () => {
+    const allDoneTasks: TimelineTask[] = [
+      { id: '1', eventId: 'e', title: 'Task 1', description: '', dueDate: '2026-12-01', priority: 'medium', status: 'completed', category: 'General' },
+      { id: '2', eventId: 'e', title: 'Task 2', description: '', dueDate: '2026-12-02', priority: 'high', status: 'completed', category: 'General' },
+    ];
+    const allBookedVendors: Vendor[] = [
+      { id: '1', eventId: 'e', name: 'Vendor 1', category: 'General', estimatedCost: 1000, agreedCost: 1000, amountPaid: 1000, bookingStatus: 'booked', paymentStatus: 'paid' },
+    ];
+    const budgetMetrics = calculateBudgetMetrics(10000, [], [], allBookedVendors);
+
+    const readiness = calculateReadinessScore(mockWeddingEvent, allDoneTasks, allBookedVendors, budgetMetrics);
+    expect(readiness.overallScore).toBeGreaterThanOrEqual(90);
+    expect(readiness.label).toBe('Celebration Ready');
   });
 });

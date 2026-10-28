@@ -22,6 +22,13 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 app.use(express.json({ limit: '1mb' }));
 
+// Basic Security Headers
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+});
+
 // Health and AI configuration check
 app.get('/api/health', (_req: Request, res: Response) => {
   const hasGeminiKey = Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim().length > 0);
@@ -36,12 +43,14 @@ app.get('/api/health', (_req: Request, res: Response) => {
 // AI Assistant Chat Route
 app.post('/api/assistant/chat', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { message, event, tasks = [], vendors = [], budgetMetrics = {}, history = [] } = req.body;
+    const { message: rawMessage, event, tasks = [], vendors = [], budgetMetrics = {}, history = [] } = req.body;
 
-    if (!message || typeof message !== 'string') {
-      res.status(400).json({ error: 'User message is required.' });
+    if (!rawMessage || typeof rawMessage !== 'string' || rawMessage.trim().length === 0) {
+      res.status(400).json({ error: 'Valid user message is required.' });
       return;
     }
+
+    const message = rawMessage.trim().slice(0, 2000);
 
     const apiKey = process.env.GEMINI_API_KEY;
 

@@ -94,6 +94,15 @@ export const EventWizardModal: React.FC<EventWizardModalProps> = ({
   // Validation errors
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Handle Escape key
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   if (!isOpen) return null;
 
   const handleNextFromStep1 = () => {
@@ -167,12 +176,17 @@ export const EventWizardModal: React.FC<EventWizardModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0a1f16]/60 backdrop-blur-xs overflow-y-auto">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="wizard-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0a1f16]/60 backdrop-blur-xs overflow-y-auto"
+    >
       <div className="bg-[#fdfbf7] border border-[#e8dfcf] rounded-xl shadow-xl w-full max-w-2xl overflow-hidden my-8">
         {/* Wizard Header */}
         <div className="flex items-center justify-between px-6 py-4 bg-[#f8f3ea] border-b border-[#e8dfcf]">
           <div>
-            <h2 className="font-serif text-xl font-semibold text-[#0f2b20]">Plan a New Celebration</h2>
+            <h2 id="wizard-title" className="font-serif text-xl font-semibold text-[#0f2b20]">Plan a New Celebration</h2>
             <p className="text-xs text-[#52635b] mt-0.5">
               Step {step} of 4 ·{' '}
               {step === 1 && 'Celebration Basics'}
