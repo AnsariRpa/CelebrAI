@@ -15,18 +15,31 @@ import {
   Sparkles,
   User,
 } from 'lucide-react';
-import { BudgetMetrics, ChatMessage, Event, TimelineTask, Vendor } from '../../domain/types';
+import {
+  BudgetCategory,
+  BudgetMetrics,
+  ChatMessage,
+  Event,
+  Expense,
+  ReplanProposal,
+  TimelineTask,
+  Vendor,
+} from '../../domain/types';
 import { AIService } from '../../services/ai/aiService';
 
 interface AssistantViewProps {
   event: Event | null;
   tasks: TimelineTask[];
   vendors: Vendor[];
+  categories: BudgetCategory[];
+  expenses: Expense[];
   budgetMetrics: BudgetMetrics;
   hasGeminiKey: boolean;
+  onOpenReplanModal: (proposal?: ReplanProposal) => void;
 }
 
 const DEFAULT_CHIPS = [
+  'Our budget has dropped to ₹6,50,000, and the wedding is happening two weeks earlier. We still want to prioritize food and guest experience. Please revise our plan.',
   'What are my 3 most urgent tasks?',
   'How can I reduce costs without compromising guest experience?',
   'Suggest a dietary-friendly menu concept for our guests',
@@ -39,8 +52,11 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
   event,
   tasks,
   vendors,
+  categories,
+  expenses,
   budgetMetrics,
   hasGeminiKey,
+  onOpenReplanModal,
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
     {
@@ -91,6 +107,8 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
         event,
         tasks,
         vendors,
+        categories,
+        expenses,
         budgetMetrics,
         history: [...messages, userMessage],
       });
@@ -102,6 +120,7 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         suggestions: response.suggestions || DEFAULT_CHIPS,
         isLiveAI: response.isLiveAI,
+        replanProposal: response.replanProposal,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -190,6 +209,46 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
                 <div className="space-y-2 whitespace-pre-wrap">
                   {msg.text}
                 </div>
+
+                {/* Structured Interactive Replan Proposal Card */}
+                {!isUser && msg.replanProposal && (
+                  <div className="mt-3.5 p-3.5 bg-[#fcfaf6] border border-[#dcd2be] rounded-xl space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-[#0f2b20] flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-[#bd9b46]" />
+                        Intelligent Plan Revision Blueprint
+                      </span>
+                      <span className="text-[10px] font-mono text-[#6e7d76]">
+                        Preserving 100% completed items
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                      <div className="p-2 bg-white border border-[#e8dfcf] rounded-md">
+                        <span className="text-[#6e7d76] block text-[10px]">Budget Delta:</span>
+                        <span className="font-semibold text-amber-700">
+                          {msg.replanProposal.changesSummary.budgetDelta < 0 ? '-' : '+'}₹
+                          {Math.abs(msg.replanProposal.changesSummary.budgetDelta).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="p-2 bg-white border border-[#e8dfcf] rounded-md">
+                        <span className="text-[#6e7d76] block text-[10px]">Timeline Shift:</span>
+                        <span className="font-semibold text-[#0f2b20]">
+                          {Math.abs(msg.replanProposal.changesSummary.dateShiftDays)} days earlier
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => onOpenReplanModal(msg.replanProposal)}
+                      className="w-full mt-2 py-2 px-3 bg-[#143c2c] hover:bg-[#0f2b20] text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <span>Review & Apply Revised Plan</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
 
                 {/* Suggestions chips on last assistant message */}
                 {!isUser && msg.suggestions && msg.suggestions.length > 0 && (

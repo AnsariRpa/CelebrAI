@@ -12,6 +12,7 @@ interface HeaderProps {
   events: Event[];
   onSelectEvent: (eventId: string) => void;
   onOpenWizard: () => void;
+  onOpenReplan?: () => void;
   onPrint: () => void;
   onExport: () => void;
   hasGeminiKey: boolean;
@@ -22,6 +23,7 @@ export const Header: React.FC<HeaderProps> = ({
   events,
   onSelectEvent,
   onOpenWizard,
+  onOpenReplan,
   onPrint,
   onExport,
   hasGeminiKey,
@@ -77,10 +79,20 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {activeEvent && (
           <>
+            {onOpenReplan && (
+              <button
+                onClick={onOpenReplan}
+                title="Intelligently revise plan with budget or date changes"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#143c2c] bg-[#f5efe4] hover:bg-[#ede5d5] border border-[#d8c28b] rounded-md transition-colors cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-[#bd9b46]" />
+                <span className="hidden sm:inline">Smart Replan</span>
+              </button>
+            )}
             <button
               onClick={onPrint}
               title="Print Run-of-Show Summary"
-              className="p-2 text-xs font-medium text-[#1c4b38] hover:text-[#0f2b20] hover:bg-[#f3ede2] rounded-md transition-colors"
+              className="p-2 text-xs font-medium text-[#1c4b38] hover:text-[#0f2b20] hover:bg-[#f3ede2] rounded-md transition-colors cursor-pointer"
               aria-label="Print event summary"
             >
               <Printer className="w-4 h-4" />
@@ -88,7 +100,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onExport}
               title="Export JSON Backup"
-              className="p-2 text-xs font-medium text-[#1c4b38] hover:text-[#0f2b20] hover:bg-[#f3ede2] rounded-md transition-colors"
+              className="p-2 text-xs font-medium text-[#1c4b38] hover:text-[#0f2b20] hover:bg-[#f3ede2] rounded-md transition-colors cursor-pointer"
               aria-label="Export backup"
             >
               <Download className="w-4 h-4" />

@@ -6,18 +6,22 @@
 import React, { useState } from 'react';
 import {
   AlertCircle,
+  AlertTriangle,
   Calendar,
   CheckCircle2,
   Circle,
   Clock,
   Filter,
   Flame,
+  GitBranch,
+  Link2,
   Plus,
   Trash2,
   X,
 } from 'lucide-react';
 import { Event, TaskPriority, TaskStatus, TimelineTask } from '../../domain/types';
 import { generateId } from '../../domain/validation';
+import { checkTaskDependencies } from '../../services/planning/planningEngine';
 
 interface TimelineViewProps {
   event: Event;
@@ -43,6 +47,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   const [dueDate, setDueDate] = useState(() => event.date);
   const [priority, setPriority] = useState<TaskPriority>('high');
   const [category, setCategory] = useState('General Coordination');
+  const [dependsOnTaskId, setDependsOnTaskId] = useState<string>('');
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -68,13 +73,18 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
       priority,
       status: 'not_started',
       category,
+      dependsOnTaskId: dependsOnTaskId || undefined,
     };
 
     onAddTask(newTask);
     setIsAddModalOpen(false);
     setTitle('');
     setDesc('');
+    setDependsOnTaskId('');
   };
+
+  // Run dependency analysis
+  const { conflicts, downstreamDelays } = checkTaskDependencies(tasks);
 
   // Sort chronologically by dueDate
   const sortedTasks = [...tasks].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
@@ -101,12 +111,12 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
             Timeline & Execution Milestones
           </h1>
           <p className="text-xs text-[#52635b] mt-0.5">
-            Date-aware chronological schedule calibrated for {event.name}.
+            Date-aware chronological schedule calibrated with automated dependency tracking for {event.name}.
           </p>
         </div>
         <button
           onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-white bg-[#143c2c] hover:bg-[#0f2b20] rounded-md shadow-xs transition-colors self-start sm:self-auto"
+          className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-white bg-[#143c2c] hover:bg-[#0f2b20] rounded-md shadow-xs transition-colors self-start sm:self-auto cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>Add Task</span>
@@ -137,8 +147,30 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
         </div>
       </div>
 
+      {/* Dependency Conflict & Downstream Delay Advisory Banner */}
+      {(downstreamDelays.length > 0 || conflicts.length > 0) && (
+        <div className="p-3.5 bg-amber-50/80 border border-amber-200/90 rounded-xl space-y-2 text-xs text-amber-950">
+          <div className="flex items-center gap-2 font-semibold text-amber-900">
+            <GitBranch className="w-4 h-4 text-amber-700 shrink-0" />
+            <span>Task Dependency Advisory ({downstreamDelays.length + conflicts.length} impact notices)</span>
+          </div>
+          <ul className="space-y-1 pl-6 list-disc text-[11px] text-amber-900/90">
+            {conflicts.map((c, i) => (
+              <li key={`conflict-${i}`}>
+                <strong>Conflict:</strong> {c.message}
+              </li>
+            ))}
+            {downstreamDelays.map((d, i) => (
+              <li key={`delay-${i}`}>
+                <strong>Downstream Block:</strong> {d.message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Overdue Warning */}
-      {overdueCount > 0 && (
+      {overdueCount > 0 && downstreamDelays.length === 0 && (
         <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-900">
           <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
           <span>
@@ -245,6 +277,30 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                           Compressed Deadline
                         </span>
                       )}
+                      {task.dependsOnTaskId && (() => {
+                        const prereq = tasks.find((t) => t.id === task.dependsOnTaskId);
+                        if (!prereq) return null;
+                        const prereqDone = prereq.status === 'completed';
+                        const prereqOverdue = !prereqDone && prereq.dueDate < todayStr;
+                        return (
+                          <span
+                            className={`text-[10px] font-medium flex items-center gap-1 px-1.5 py-0.5 rounded ${
+                              prereqOverdue
+                                ? 'bg-amber-100/90 text-amber-900 border border-amber-300'
+                                : prereqDone
+                                ? 'text-[#2f7e5f]'
+                                : 'text-[#6e7d76]'
+                            }`}
+                          >
+                            <Link2 className="w-2.5 h-2.5 shrink-0" />
+                            <span>
+                              {prereqOverdue ? 'Blocked by overdue: ' : 'Prerequisite: '}
+                              {prereq.title}
+                            </span>
+                            {prereqDone && <CheckCircle2 className="w-2.5 h-2.5 text-[#2f7e5f]" />}
+                          </span>
+                        );
+                      })()}
                     </div>
                     {task.description && (
                       <p className="text-xs text-[#52635b] leading-relaxed">{task.description}</p>
@@ -356,6 +412,27 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                     <option value="low">Low</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#143c2c] mb-1">
+                  Prerequisite Milestone (Optional)
+                </label>
+                <select
+                  value={dependsOnTaskId}
+                  onChange={(e) => setDependsOnTaskId(e.target.value)}
+                  className="w-full px-3 py-1.5 text-xs bg-white border border-[#d8cdb8] rounded-md focus:outline-none"
+                >
+                  <option value="">No prerequisite (Independent task)</option>
+                  {tasks.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.title} (due {t.dueDate})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-[#6e7d76] mt-1">
+                  Enforces chronological ordering and detects downstream delay blocks if the prerequisite is overdue.
+                </p>
               </div>
 
               <div>

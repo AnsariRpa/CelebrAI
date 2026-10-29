@@ -12,6 +12,7 @@ import {
   SavedIdea,
   TimelineTask,
   Vendor,
+  VendorQuote,
 } from '../../domain/types';
 import { generateId, validateImportedData } from '../../domain/validation';
 import {
@@ -28,6 +29,7 @@ const STORAGE_KEYS = {
   EXPENSES: 'celebr_ai_expenses_v2',
   TASKS: 'celebr_ai_tasks_v2',
   VENDORS: 'celebr_ai_vendors_v2',
+  QUOTES: 'celebr_ai_quotes_v2',
   CHECKLIST: 'celebr_ai_checklist_v2',
   IDEAS: 'celebr_ai_ideas_v2',
 };
@@ -67,6 +69,7 @@ function createInitialShowcaseEvent(): {
   checklist: ChecklistItem[];
   ideas: SavedIdea[];
   expenses: Expense[];
+  quotes: VendorQuote[];
 } {
   // Target date 3 months in future
   const future = new Date();
@@ -155,7 +158,70 @@ function createInitialShowcaseEvent(): {
     tasks[1].status = 'in_progress';
   }
 
-  return { event, categories, tasks, vendors, checklist, ideas, expenses };
+  // Seed 2-3 realistic vendor quotation comparisons for Catering
+  const quotes: VendorQuote[] = [
+    {
+      id: generateId(),
+      eventId: event.id,
+      vendorName: 'Royal Heritage Culinary & Banquets',
+      category: 'Catering & Beverages',
+      quotedAmount: 380000,
+      pricePerPerson: 1727,
+      guestCapacity: 250,
+      servicesIncluded: [
+        '3-Course Royal Rajputana Buffet',
+        'Live Artisanal Jalebi Counter',
+        '18 Professional Service Waiters & Floor Captain',
+        'Standard Bone China Crockery & Glassware',
+      ],
+      paymentTerms: '30% Advance, 50% on Event Morning, 20% Post-event reconciliation',
+      isPreferred: true,
+      notes: 'Verified itemized quote. Confirmed separate pure-vegetarian kitchen trailer and food safety certificate.',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: generateId(),
+      eventId: event.id,
+      vendorName: 'Saffron Spice Banqueting Co.',
+      category: 'Catering & Beverages',
+      quotedAmount: 330000,
+      pricePerPerson: 1500,
+      guestCapacity: 220,
+      servicesIncluded: [
+        'Traditional Buffet & Welcome Coolers',
+        'Buffet Chafing Warmer Setup',
+        '12 Uniformed Waitstaff',
+      ],
+      missingInfo: [
+        'Overtime charges past 11:30 PM',
+        'Staff gratuity & crockery breakage policy',
+        'Strict separate pure-vegetarian kitchen isolation guarantee',
+      ],
+      notes: 'Competitive base pricing, but missing critical contract terms on kitchen isolation and late overtime.',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: generateId(),
+      eventId: event.id,
+      vendorName: 'Maharaja Grand Feast Caterers',
+      category: 'Catering & Beverages',
+      quotedAmount: 495000,
+      pricePerPerson: 2250,
+      guestCapacity: 300,
+      servicesIncluded: [
+        '5-Course Elaborate Thali & 4 Live Stations',
+        'Luxury Gold-Rim Cutlery & Crystal Goblets',
+        'Handcrafted Ice Sculptures & Fruit Carvings',
+        'Dedicated Master Chef On-Site',
+      ],
+      paymentTerms: '50% Advance on Booking, 50% 7 Days Prior to Event',
+      missingInfo: ['Detailed fuel & generator logistics surcharge'],
+      notes: 'Ultra-premium presentation, but exceeds recommended category allocation by 10%.',
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
+  return { event, categories, tasks, vendors, checklist, ideas, expenses, quotes };
 }
 
 export class StorageService {
@@ -171,6 +237,7 @@ export class StorageService {
       this.saveCategories(initial.categories);
       this.saveTasks(initial.tasks);
       this.saveVendors(initial.vendors);
+      this.saveQuotes(initial.quotes);
       this.saveChecklist(initial.checklist);
       this.saveIdeas(initial.ideas);
       this.saveExpenses(initial.expenses);
@@ -261,6 +328,7 @@ export class StorageService {
     this.saveExpenses(this.getExpenses().filter((e) => e.eventId !== eventId));
     this.saveTasks(this.getTasks().filter((t) => t.eventId !== eventId));
     this.saveVendors(this.getVendors().filter((v) => v.eventId !== eventId));
+    this.saveQuotes(this.getQuotes().filter((q) => q.eventId !== eventId));
     this.saveChecklist(this.getChecklist().filter((c) => c.eventId !== eventId));
     this.saveIdeas(this.getIdeas().filter((i) => i.eventId !== eventId));
 
@@ -401,6 +469,38 @@ export class StorageService {
     this.saveVendors(all);
   }
 
+  // --- VENDOR QUOTES ---
+  static getQuotes(eventId?: string): VendorQuote[] {
+    const raw = safeGetItem(STORAGE_KEYS.QUOTES);
+    if (!raw) return [];
+    try {
+      const all: VendorQuote[] = JSON.parse(raw);
+      return eventId ? all.filter((q) => q.eventId === eventId) : all;
+    } catch {
+      return [];
+    }
+  }
+
+  static saveQuotes(quotes: VendorQuote[]): void {
+    safeSetItem(STORAGE_KEYS.QUOTES, JSON.stringify(quotes));
+  }
+
+  static addQuote(quote: VendorQuote): void {
+    const all = this.getQuotes();
+    all.unshift(quote);
+    this.saveQuotes(all);
+  }
+
+  static updateQuote(quote: VendorQuote): void {
+    const all = this.getQuotes().map((q) => (q.id === quote.id ? quote : q));
+    this.saveQuotes(all);
+  }
+
+  static deleteQuote(quoteId: string): void {
+    const all = this.getQuotes().filter((q) => q.id !== quoteId);
+    this.saveQuotes(all);
+  }
+
   // --- CHECKLIST ---
   static getChecklist(eventId?: string): ChecklistItem[] {
     const raw = safeGetItem(STORAGE_KEYS.CHECKLIST);
@@ -474,6 +574,7 @@ export class StorageService {
       expenses: this.getExpenses(eventId),
       tasks: this.getTasks(eventId),
       vendors: this.getVendors(eventId),
+      quotes: this.getQuotes(eventId),
       checklist: this.getChecklist(eventId),
       ideas: this.getIdeas(eventId),
     };
@@ -506,6 +607,7 @@ export class StorageService {
       const newExpenses = remapEventId(imported.expenses || []);
       const newTasks = remapEventId(imported.tasks || []);
       const newVendors = remapEventId(imported.vendors || []);
+      const newQuotes = remapEventId(imported.quotes || []);
       const newChecklist = remapEventId(imported.checklist || []);
       const newIdeas = remapEventId(imported.ideas || []);
 
@@ -519,6 +621,7 @@ export class StorageService {
       this.saveExpenses(this.getExpenses().concat(newExpenses));
       this.saveTasks(this.getTasks().concat(newTasks));
       this.saveVendors(this.getVendors().concat(newVendors));
+      this.saveQuotes(this.getQuotes().concat(newQuotes));
       this.saveChecklist(this.getChecklist().concat(newChecklist));
       this.saveIdeas(this.getIdeas().concat(newIdeas));
 

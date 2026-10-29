@@ -14,17 +14,21 @@ import { VendorsView } from './components/vendors/VendorsView';
 import { IdeasView } from './components/ideas/IdeasView';
 import { AssistantView } from './components/assistant/AssistantView';
 import { EventWizardModal } from './components/events/EventWizardModal';
+import { ReplanModal } from './components/events/ReplanModal';
 import { PrintableSummary } from './components/common/PrintableSummary';
 import {
   BudgetCategory,
   ChecklistItem,
   Event,
   Expense,
+  ReplanProposal,
   SavedIdea,
   TimelineTask,
   Vendor,
+  VendorQuote,
 } from './domain/types';
 import {
+  applyReplanProposal,
   calculateBudgetMetrics,
   calculateReadinessScore,
 } from './services/planning/planningEngine';
@@ -38,11 +42,14 @@ export default function App() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [tasks, setTasks] = useState<TimelineTask[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [quotes, setQuotes] = useState<VendorQuote[]>([]);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [ideas, setIdeas] = useState<SavedIdea[]>([]);
 
   const [currentTab, setCurrentTab] = useState<NavTab>('overview');
   const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [isReplanOpen, setIsReplanOpen] = useState(false);
+  const [activeReplanProposal, setActiveReplanProposal] = useState<ReplanProposal | null>(null);
   const [isPrintOpen, setIsPrintOpen] = useState(false);
   const [hasGeminiKey, setHasGeminiKey] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
@@ -65,6 +72,7 @@ export default function App() {
       setExpenses(StorageService.getExpenses(activeId));
       setTasks(StorageService.getTasks(activeId));
       setVendors(StorageService.getVendors(activeId));
+      setQuotes(StorageService.getQuotes(activeId));
       setChecklist(StorageService.getChecklist(activeId));
       setIdeas(StorageService.getIdeas(activeId));
     } else {
@@ -72,6 +80,7 @@ export default function App() {
       setExpenses([]);
       setTasks([]);
       setVendors([]);
+      setQuotes([]);
       setChecklist([]);
       setIdeas([]);
     }
@@ -126,8 +135,56 @@ export default function App() {
     setExpenses(StorageService.getExpenses(eventId));
     setTasks(StorageService.getTasks(eventId));
     setVendors(StorageService.getVendors(eventId));
+    setQuotes(StorageService.getQuotes(eventId));
     setChecklist(StorageService.getChecklist(eventId));
     setIdeas(StorageService.getIdeas(eventId));
+  };
+
+  // Replan application handler
+  const handleApplyReplanProposal = (proposal: ReplanProposal) => {
+    if (!activeEvent) return;
+
+    const result = applyReplanProposal(activeEvent, categories, tasks, proposal);
+
+    // Update Event in Storage
+    StorageService.updateEvent(result.event);
+
+    // Update Categories in Storage
+    const allCategories = StorageService.getCategories();
+    const updatedCategories = allCategories.map((c) => {
+      const replacement = result.categories.find((rc) => rc.id === c.id);
+      return replacement || c;
+    });
+    StorageService.saveCategories(updatedCategories);
+
+    // Update Tasks in Storage
+    const allTasks = StorageService.getTasks();
+    const updatedTasks = allTasks.map((t) => {
+      const replacement = result.tasks.find((rt) => rt.id === t.id);
+      return replacement || t;
+    });
+    StorageService.saveTasks(updatedTasks);
+
+    // Refresh state
+    loadAllData();
+    showNotification(`Plan revised! New budget: ₹${result.event.totalBudget.toLocaleString()}, date: ${result.event.date}`);
+  };
+
+  // Quote handlers
+  const handleAddQuote = (quote: VendorQuote) => {
+    StorageService.addQuote(quote);
+    if (activeEventId) {
+      setQuotes(StorageService.getQuotes(activeEventId));
+      showNotification('Quotation recorded for audit.');
+    }
+  };
+
+  const handleDeleteQuote = (quoteId: string) => {
+    if (activeEventId) {
+      StorageService.deleteQuote(quoteId);
+      setQuotes(StorageService.getQuotes(activeEventId));
+      showNotification('Quotation removed.');
+    }
   };
 
   const handleCreateEvent = (eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -304,6 +361,10 @@ export default function App() {
         events={events}
         onSelectEvent={handleSelectEvent}
         onOpenWizard={() => setIsWizardOpen(true)}
+        onOpenReplan={() => {
+          setActiveReplanProposal(null);
+          setIsReplanOpen(true);
+        }}
         onPrint={() => setIsPrintOpen(true)}
         onExport={() => activeEvent && handleExportEvent(activeEvent.id)}
         hasGeminiKey={hasGeminiKey}
@@ -330,6 +391,10 @@ export default function App() {
               ideas={ideas}
               onNavigate={setCurrentTab}
               onOpenWizard={() => setIsWizardOpen(true)}
+              onOpenReplan={() => {
+                setActiveReplanProposal(null);
+                setIsReplanOpen(true);
+              }}
             />
           )}
 
@@ -371,10 +436,14 @@ export default function App() {
             <VendorsView
               event={activeEvent}
               vendors={vendors}
+              quotes={quotes}
+              categories={categories}
               checklist={checklist}
               onAddVendor={handleAddVendor}
               onUpdateVendor={handleUpdateVendor}
               onDeleteVendor={handleDeleteVendor}
+              onAddQuote={handleAddQuote}
+              onDeleteQuote={handleDeleteQuote}
               onToggleChecklist={handleToggleChecklist}
               onAddChecklistItem={handleAddChecklistItem}
               onDeleteChecklistItem={handleDeleteChecklistItem}
@@ -395,8 +464,14 @@ export default function App() {
               event={activeEvent}
               tasks={tasks}
               vendors={vendors}
+              categories={categories}
+              expenses={expenses}
               budgetMetrics={budgetMetrics}
               hasGeminiKey={hasGeminiKey}
+              onOpenReplanModal={(prop) => {
+                setActiveReplanProposal(prop || null);
+                setIsReplanOpen(true);
+              }}
             />
           )}
         </main>
@@ -415,6 +490,20 @@ export default function App() {
         onClose={() => setIsWizardOpen(false)}
         onCreateEvent={handleCreateEvent}
       />
+
+      {isReplanOpen && activeEvent && (
+        <ReplanModal
+          isOpen={isReplanOpen}
+          onClose={() => setIsReplanOpen(false)}
+          event={activeEvent}
+          categories={categories}
+          expenses={expenses}
+          tasks={tasks}
+          vendors={vendors}
+          initialProposal={activeReplanProposal}
+          onApplyProposal={handleApplyReplanProposal}
+        />
+      )}
 
       {isPrintOpen && activeEvent && (
         <PrintableSummary

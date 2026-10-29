@@ -43,7 +43,16 @@ app.get('/api/health', (_req: Request, res: Response) => {
 // AI Assistant Chat Route
 app.post('/api/assistant/chat', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { message: rawMessage, event, tasks = [], vendors = [], budgetMetrics = {}, history = [] } = req.body;
+    const {
+      message: rawMessage,
+      event,
+      tasks = [],
+      vendors = [],
+      categories = [],
+      expenses = [],
+      budgetMetrics = {},
+      history = [],
+    } = req.body;
 
     if (!rawMessage || typeof rawMessage !== 'string' || rawMessage.trim().length === 0) {
       res.status(400).json({ error: 'Valid user message is required.' });
@@ -51,6 +60,30 @@ app.post('/api/assistant/chat', async (req: Request, res: Response): Promise<voi
     }
 
     const message = rawMessage.trim().slice(0, 2000);
+
+    // Check if the prompt triggers intelligent replanning so we can attach structured proposal
+    const query = message.toLowerCase();
+    const isReplanIntent =
+      query.includes('replan') ||
+      query.includes('revise') ||
+      query.includes('dropped') ||
+      query.includes('decreased') ||
+      query.includes('earlier') ||
+      (query.includes('budget') && (query.includes('cut') || query.includes('reduce') || query.includes('6,50,000') || query.includes('650000')));
+
+    let potentialReplanProposal = undefined;
+    if (event && isReplanIntent) {
+      const replanEval = generateLocalAssistantResponse(
+        message,
+        event,
+        tasks,
+        vendors,
+        budgetMetrics,
+        categories,
+        expenses
+      );
+      potentialReplanProposal = replanEval.replanProposal;
+    }
 
     const apiKey = process.env.GEMINI_API_KEY;
 
@@ -68,7 +101,7 @@ app.post('/api/assistant/chat', async (req: Request, res: Response): Promise<voi
 
         // Construct a bounded, practical context summary
         const eventSummary = event
-          ? `Event: "${event.name}" (${event.type}), Date: ${event.date}, Location: ${event.location}, Guests: ${event.guestCount}, Budget: ${event.currency} ${event.totalBudget}, Actual Spent: ${event.currency} ${budgetMetrics.totalActual || 0}, Remaining: ${event.currency} ${budgetMetrics.remainingBudget || 0}. Style: ${event.preferences?.style || 'Standard'}. Dietary: ${event.preferences?.dietaryRequirements?.join(', ') || 'None stated'}. Accessibility: ${event.preferences?.accessibilityNeeds?.join(', ') || 'None stated'}.`
+          ? `Event: "${event.name}" (${event.type}), Date: ${event.date}, Location: ${event.location}, Guests: ${event.guestCount}, Budget: ${event.currency} ${event.totalBudget}, Actual Spent: ${event.currency} ${budgetMetrics.totalActual || 0}, Remaining: ${event.currency} ${budgetMetrics.remainingBudget || 0}. Style: ${event.preferences?.style || 'Standard'}. Dietary: ${event.preferences?.dietaryRequirements?.join(', ') || 'None stated'}. Accessibility: ${event.preferences?.accessibilityNeeds?.join(', ') || 'None stated'}. Priority Focus: ${event.preferences?.priorityFocus || 'food_guest_experience'}.`
           : 'No specific event selected.';
 
         const urgentTasks = tasks
@@ -82,11 +115,12 @@ Your job is to help users organize weddings, birthdays, anniversaries, and commu
 
 CRITICAL RULES:
 1. Always respect the stated budget, guest count, dietary, and accessibility constraints.
-2. Provide concrete, actionable next steps rather than generic platitudes.
-3. Clearly label cost estimates as illustrative approximations, not verified merchant quotations.
-4. Never recommend cutting emergency safety, food hygiene, or accessibility measures as cost savings.
-5. If the event is in the near future (compressed window), prioritize urgent immediate tasks.
-6. Keep answers structured, elegant, and concise with bullet points where appropriate.
+2. If the user reports a budget drop, date shift, or requests to replan/revise, provide clear trade-offs, explain which categories are protected (e.g. food quality and guest experience), show which costs are trimmed, and confirm that completed tasks and actual expenses are safely preserved.
+3. Provide concrete, actionable next steps rather than generic platitudes.
+4. Clearly label cost estimates as illustrative approximations, not verified merchant quotations.
+5. Never recommend cutting emergency safety, food hygiene, or accessibility measures as cost savings.
+6. If the event is in the near future (compressed window), prioritize urgent immediate tasks.
+7. Keep answers structured, elegant, and concise with bullet points where appropriate.
 
 Current Event Context:
 ${eventSummary}
@@ -136,12 +170,20 @@ ${urgentTasks || 'None at this moment.'}`;
           res.json({
             text: responseText,
             isLiveAI: true,
-            suggestions: [
-              'What are my 3 most urgent tasks?',
-              'How can I reduce costs without compromising guest experience?',
-              'What vendors do I still need to book?',
-              'Give me a rain contingency plan',
-            ],
+            replanProposal: potentialReplanProposal,
+            suggestions: potentialReplanProposal
+              ? [
+                  'Review and apply revised plan',
+                  'What are my 3 most urgent tasks?',
+                  'How to reduce costs further?',
+                  'Check vendor quotation comparison',
+                ]
+              : [
+                  'What are my 3 most urgent tasks?',
+                  'How can I reduce costs without compromising guest experience?',
+                  'What vendors do I still need to book?',
+                  'Give me a rain contingency plan',
+                ],
           });
           return;
         }
@@ -153,11 +195,20 @@ ${urgentTasks || 'None at this moment.'}`;
 
     // Deterministic fallback response when Gemini key is not present or failed
     if (event) {
-      const fallback = generateLocalAssistantResponse(message, event, tasks, vendors, budgetMetrics);
+      const fallback = generateLocalAssistantResponse(
+        message,
+        event,
+        tasks,
+        vendors,
+        budgetMetrics,
+        categories,
+        expenses
+      );
       res.json({
         text: fallback.text,
         isLiveAI: false,
         suggestions: fallback.suggestions,
+        replanProposal: fallback.replanProposal,
         isFallback: true,
       });
       return;

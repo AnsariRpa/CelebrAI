@@ -3,13 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BudgetMetrics, ChatMessage, Event, TimelineTask, Vendor } from '../../domain/types';
+import {
+  BudgetCategory,
+  BudgetMetrics,
+  ChatMessage,
+  Event,
+  Expense,
+  ReplanProposal,
+  TimelineTask,
+  Vendor,
+} from '../../domain/types';
 import { generateLocalAssistantResponse } from '../planning/planningEngine';
 
 export interface AssistantResponse {
   text: string;
   isLiveAI: boolean;
   suggestions?: string[];
+  replanProposal?: ReplanProposal;
   error?: string;
 }
 
@@ -49,9 +59,11 @@ export class AIService {
     tasks: TimelineTask[];
     vendors: Vendor[];
     budgetMetrics: BudgetMetrics;
+    categories?: BudgetCategory[];
+    expenses?: Expense[];
     history: ChatMessage[];
   }): Promise<AssistantResponse> {
-    const { message, event, tasks, vendors, budgetMetrics, history } = params;
+    const { message, event, tasks, vendors, budgetMetrics, categories = [], expenses = [], history } = params;
 
     // Attempt server route
     try {
@@ -63,6 +75,8 @@ export class AIService {
           event,
           tasks,
           vendors,
+          categories,
+          expenses,
           budgetMetrics,
           history: history.slice(-4).map((h) => ({ role: h.role, text: h.text })),
         }),
@@ -74,6 +88,7 @@ export class AIService {
           text: data.text,
           isLiveAI: Boolean(data.isLiveAI),
           suggestions: data.suggestions || [],
+          replanProposal: data.replanProposal,
         };
       }
     } catch (err) {
@@ -82,11 +97,20 @@ export class AIService {
 
     // Direct local fallback if server unreachable
     if (event) {
-      const local = generateLocalAssistantResponse(message, event, tasks, vendors, budgetMetrics);
+      const local = generateLocalAssistantResponse(
+        message,
+        event,
+        tasks,
+        vendors,
+        budgetMetrics,
+        categories,
+        expenses
+      );
       return {
         text: local.text,
         isLiveAI: false,
         suggestions: local.suggestions,
+        replanProposal: local.replanProposal,
       };
     }
 

@@ -40,8 +40,9 @@ export interface EventPreferences {
   dietaryRequirements: string[];
   accessibilityNeeds: string[];
   culturalConsiderations?: string;
-  mustHaveActivities: string[];
+  mustHaveActivities?: string[];
   additionalNotes?: string;
+  priorityFocus?: 'food_guest_experience' | 'venue_atmosphere' | 'media_memories' | 'balanced' | 'custom';
 }
 
 export interface Event {
@@ -91,13 +92,17 @@ export interface TimelineTask {
   id: string;
   eventId: string;
   title: string;
-  description: string;
+  description?: string;
   dueDate: string; // ISO date 'YYYY-MM-DD'
   priority: TaskPriority;
   status: TaskStatus;
   category: string;
   isCompressedDeadline?: boolean;
   notes?: string;
+  dependsOnTaskId?: string; // ID of prerequisite task
+  downstreamTaskIds?: string[]; // IDs of tasks waiting on this
+  dependencyStatus?: 'satisfied' | 'pending' | 'conflict';
+  dependencyNote?: string;
 }
 
 export interface Vendor {
@@ -114,6 +119,23 @@ export interface Vendor {
   paymentStatus: PaymentStatus;
   contractNotes?: string;
   eventNotes?: string;
+}
+
+export interface VendorQuote {
+  id: string;
+  eventId: string;
+  vendorName: string;
+  category: string;
+  quotedAmount: number;
+  pricePerPerson?: number;
+  servicesIncluded: string[];
+  guestCapacity?: number;
+  additionalChargesNotes?: string;
+  paymentTerms?: string;
+  isPreferred?: boolean;
+  missingInfo?: string[];
+  notes?: string;
+  createdAt: string;
 }
 
 export interface ChecklistItem {
@@ -138,6 +160,60 @@ export interface SavedIdea {
   isUsed: boolean;
 }
 
+export interface ReplanRequest {
+  newTotalBudget?: number;
+  newDate?: string;
+  newGuestCount?: number;
+  priorityFocus?: 'food_guest_experience' | 'venue_atmosphere' | 'media_memories' | 'balanced' | 'custom';
+  customPriorityNotes?: string;
+}
+
+export interface ReplanProposal {
+  id: string;
+  eventId: string;
+  timestamp: string;
+  summary: string;
+  changesSummary: {
+    budgetDelta: number; // e.g. -150000
+    dateShiftDays: number; // e.g. -14
+    guestDelta: number; // e.g. -20
+    affectedCategoriesCount: number;
+    compressedTasksCount: number;
+  };
+  categoryAdjustments: Array<{
+    categoryId: string;
+    categoryName: string;
+    currentAllocated: number;
+    proposedAllocated: number;
+    currentSpent: number;
+    delta: number;
+    reason: string;
+    isProtected: boolean;
+  }>;
+  timelineAdjustments: Array<{
+    taskId: string;
+    title: string;
+    oldDueDate: string;
+    newDueDate: string;
+    oldPriority: TaskPriority;
+    newPriority: TaskPriority;
+    isOverdue: boolean;
+    isCompressed: boolean;
+    dependencyConflict?: string;
+    reason: string;
+  }>;
+  guestImpactNotes?: string[];
+  tradeOffs: {
+    gained: string[];
+    sacrificed: string[];
+  };
+  preservedItems: {
+    completedTasksCount: number;
+    actualExpensesCount: number;
+    bookedVendorsCount: number;
+  };
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -145,6 +221,7 @@ export interface ChatMessage {
   timestamp: string;
   suggestions?: string[];
   isLiveAI?: boolean;
+  replanProposal?: ReplanProposal; // Optional structured replan proposal attached to assistant response
 }
 
 export interface BudgetMetrics {
@@ -180,6 +257,7 @@ export interface EventExportData {
   expenses: Expense[];
   tasks: TimelineTask[];
   vendors: Vendor[];
+  quotes?: VendorQuote[];
   checklist: ChecklistItem[];
   ideas: SavedIdea[];
 }

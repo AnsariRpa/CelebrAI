@@ -38,6 +38,7 @@ interface OverviewViewProps {
   ideas: SavedIdea[];
   onNavigate: (tab: NavTab) => void;
   onOpenWizard: () => void;
+  onOpenReplan?: () => void;
 }
 
 export const OverviewView: React.FC<OverviewViewProps> = ({
@@ -50,6 +51,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
   ideas,
   onNavigate,
   onOpenWizard,
+  onOpenReplan,
 }) => {
   if (!event) {
     return (
@@ -134,6 +136,19 @@ export const OverviewView: React.FC<OverviewViewProps> = ({
                 {readiness.label}
               </p>
             </div>
+            {onOpenReplan && (
+              <>
+                <div className="w-[1px] h-10 bg-[#e8dfcf]" />
+                <button
+                  onClick={onOpenReplan}
+                  title="Simulate budget drops or timeline shifts without data loss"
+                  className="px-3 py-1.5 text-xs font-semibold text-[#143c2c] bg-[#f5efe4] hover:bg-[#ede5d5] border border-[#d8c28b] rounded-md transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-[#bd9b46]" />
+                  <span>Smart Replan</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
 

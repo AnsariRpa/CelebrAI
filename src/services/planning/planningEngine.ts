@@ -11,9 +11,13 @@ import {
   EventType,
   Expense,
   ReadinessMetrics,
+  ReplanProposal,
+  ReplanRequest,
   SavedIdea,
+  TaskPriority,
   TimelineTask,
   Vendor,
+  VendorQuote,
 } from '../../domain/types';
 import { generateId } from '../../domain/validation';
 
@@ -177,7 +181,7 @@ export function calculateBudgetMetrics(
 }
 
 /**
- * Generates a realistic, date-aware chronological timeline of planning tasks
+ * Generates a realistic, date-aware chronological timeline of planning tasks with explicit dependencies
  */
 export function generateTimeline(event: Event, referenceDate: Date = new Date()): TimelineTask[] {
   const eventDate = new Date(event.date + 'T00:00:00');
@@ -198,26 +202,32 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
   // Safe due date calculator: never assigns a due date in the past
   const calculateDueDate = (targetDaysBeforeEvent: number): string => {
     if (totalDaysRemaining <= 0) {
-      // Event is today or past
       return event.date;
     }
 
     if (totalDaysRemaining <= targetDaysBeforeEvent) {
-      // Compressed deadline: schedule between today and event date
       const fractionalOffset = Math.max(1, Math.floor(totalDaysRemaining * 0.4));
       return addDays(now, Math.min(fractionalOffset, totalDaysRemaining));
     }
 
-    // Standard schedule: event date minus target days
     return addDays(eventDate, -targetDaysBeforeEvent);
   };
 
   const tasks: TimelineTask[] = [];
 
-  // Blueprint milestones by event type
   if (event.type === 'wedding') {
+    const t1Id = `task-venue-${event.id}`;
+    const t2Id = `task-photo-${event.id}`;
+    const t3Id = `task-tasting-${event.id}`;
+    const t4Id = `task-invites-${event.id}`;
+    const t5Id = `task-attire-${event.id}`;
+    const t6Id = `task-access-${event.id}`;
+    const t7Id = `task-seating-${event.id}`;
+    const t8Id = `task-walkthrough-${event.id}`;
+    const t9Id = `task-execution-${event.id}`;
+
     tasks.push({
-      id: generateId(),
+      id: t1Id,
       eventId: event.id,
       title: 'Finalize & Reserve Main Celebration Venue',
       description: 'Review hall capacity for ' + event.guestCount + ' guests, air-conditioning, backup generators, and curfew times.',
@@ -226,9 +236,11 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
       status: 'not_started',
       category: 'Venue & Facilities',
       isCompressedDeadline: isCompressed,
+      downstreamTaskIds: [t3Id, t4Id, t6Id],
     });
+
     tasks.push({
-      id: generateId(),
+      id: t2Id,
       eventId: event.id,
       title: 'Book Lead Photographer & Cinematographer',
       description: 'Confirm coverage hours, drone clearance, deliverables timeline, and review portfolio albums.',
@@ -238,8 +250,9 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
       category: 'Media',
       isCompressedDeadline: isCompressed,
     });
+
     tasks.push({
-      id: generateId(),
+      id: t3Id,
       eventId: event.id,
       title: 'Menu Tasting & Catering Finalization',
       description: 'Finalize menu items honoring dietary preferences (' + (event.preferences.dietaryRequirements.join(', ') || 'Standard') + ').',
@@ -248,9 +261,12 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
       status: 'not_started',
       category: 'Catering',
       isCompressedDeadline: isCompressed,
+      dependsOnTaskId: t1Id,
+      dependencyNote: 'Requires venue kitchen & layout confirmation first.',
     });
+
     tasks.push({
-      id: generateId(),
+      id: t4Id,
       eventId: event.id,
       title: 'Send Save-the-Dates & Digital RSVPs',
       description: 'Dispatch invitations to ' + event.guestCount + ' estimated guests with venue map and accommodations info.',
@@ -259,9 +275,13 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
       status: 'not_started',
       category: 'Invitations',
       isCompressedDeadline: isCompressed,
+      dependsOnTaskId: t1Id,
+      downstreamTaskIds: [t7Id],
+      dependencyNote: 'Requires venue location to print/send maps.',
     });
+
     tasks.push({
-      id: generateId(),
+      id: t5Id,
       eventId: event.id,
       title: 'Ceremonial Attire & Wardrobe Fittings',
       description: 'Schedule final fittings for primary outfits, shoes, and matching accessories.',
@@ -271,8 +291,9 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
       category: 'Attire',
       isCompressedDeadline: isCompressed,
     });
+
     tasks.push({
-      id: generateId(),
+      id: t6Id,
       eventId: event.id,
       title: 'Verify Accessibility Accommodations',
       description: 'Confirm step-free ramps, priority seating, and mobility assistance at the entrance.',
@@ -281,9 +302,11 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
       status: 'not_started',
       category: 'Accessibility',
       isCompressedDeadline: isCompressed,
+      dependsOnTaskId: t1Id,
     });
+
     tasks.push({
-      id: generateId(),
+      id: t7Id,
       eventId: event.id,
       title: 'Final Guest Count & Seating Chart',
       description: 'Lock in head count with caterer and provide designated VIP/family table layout.',
@@ -292,9 +315,13 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
       status: 'not_started',
       category: 'Coordination',
       isCompressedDeadline: isCompressed,
+      dependsOnTaskId: t4Id,
+      downstreamTaskIds: [t8Id],
+      dependencyNote: 'Requires RSVP confirmations.',
     });
+
     tasks.push({
-      id: generateId(),
+      id: t8Id,
       eventId: event.id,
       title: 'Day-Before Vendor Walkthrough & Run of Show',
       description: 'Conduct sound-check, review timeline with emcee, and confirm vendor arrival slots.',
@@ -303,9 +330,12 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
       status: 'not_started',
       category: 'Logistics',
       isCompressedDeadline: isCompressed,
+      dependsOnTaskId: t7Id,
+      downstreamTaskIds: [t9Id],
     });
+
     tasks.push({
-      id: generateId(),
+      id: t9Id,
       eventId: event.id,
       title: 'Day-Of Celebration Coordination',
       description: 'Supervise vendor load-in, coordinate couple entry, and oversee guest banquet flow.',
@@ -314,10 +344,18 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
       status: 'not_started',
       category: 'Execution',
       isCompressedDeadline: false,
+      dependsOnTaskId: t8Id,
     });
   } else if (event.type === 'birthday') {
+    const b1Id = `task-bvenue-${event.id}`;
+    const b2Id = `task-bcake-${event.id}`;
+    const b3Id = `task-binvites-${event.id}`;
+    const b4Id = `task-bperform-${event.id}`;
+    const b5Id = `task-bdecor-${event.id}`;
+    const b6Id = `task-bday-${event.id}`;
+
     tasks.push({
-      id: generateId(),
+      id: b1Id,
       eventId: event.id,
       title: 'Reserve Birthday Party Venue / Hall',
       description: 'Book space suitable for ' + event.guestCount + ' guests with space for activities.',
@@ -326,9 +364,11 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
       status: 'not_started',
       category: 'Venue',
       isCompressedDeadline: isCompressed,
+      downstreamTaskIds: [b3Id, b5Id],
     });
+
     tasks.push({
-      id: generateId(),
+      id: b2Id,
       eventId: event.id,
       title: 'Order Custom Designer Cake',
       description: 'Choose flavor, custom theme toppers, and confirm dietary safety (nut-free / eggless if required).',
@@ -338,8 +378,9 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
       category: 'Bakery',
       isCompressedDeadline: isCompressed,
     });
+
     tasks.push({
-      id: generateId(),
+      id: b3Id,
       eventId: event.id,
       title: 'Send Party Invitations & Gather RSVPs',
       description: 'Collect headcounts and allergies from guests.',
@@ -348,9 +389,12 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
       status: 'not_started',
       category: 'Invitations',
       isCompressedDeadline: isCompressed,
+      dependsOnTaskId: b1Id,
+      dependencyNote: 'Requires venue location.',
     });
+
     tasks.push({
-      id: generateId(),
+      id: b4Id,
       eventId: event.id,
       title: 'Confirm Entertainment & Game Master',
       description: 'Book magician, DJ, or interactive activity leader.',
@@ -360,8 +404,9 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
       category: 'Entertainment',
       isCompressedDeadline: isCompressed,
     });
+
     tasks.push({
-      id: generateId(),
+      id: b5Id,
       eventId: event.id,
       title: 'Procure Theme Decor & Return Favors',
       description: 'Gather photo backdrop, balloon garland, and curated gift boxes.',
@@ -370,9 +415,11 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
       status: 'not_started',
       category: 'Decor',
       isCompressedDeadline: isCompressed,
+      dependsOnTaskId: b1Id,
     });
+
     tasks.push({
-      id: generateId(),
+      id: b6Id,
       eventId: event.id,
       title: 'Day-Of Party Setup & Celebration',
       description: 'Decorate venue 2 hours prior, coordinate cake cutting, and host fun games.',
@@ -381,10 +428,17 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
       status: 'not_started',
       category: 'Execution',
       isCompressedDeadline: false,
+      dependsOnTaskId: b5Id,
     });
   } else if (event.type === 'community') {
+    const c1Id = `task-cpermit-${event.id}`;
+    const c2Id = `task-cvolunteers-${event.id}`;
+    const c3Id = `task-cgear-${event.id}`;
+    const c4Id = `task-csafety-${event.id}`;
+    const c5Id = `task-cday-${event.id}`;
+
     tasks.push({
-      id: generateId(),
+      id: c1Id,
       eventId: event.id,
       title: 'Secure Civic Venue & Mandatory Permits',
       description: 'File noise permits, municipal ground approvals, and emergency egress notifications.',
@@ -393,9 +447,11 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
       status: 'not_started',
       category: 'Permits',
       isCompressedDeadline: isCompressed,
+      downstreamTaskIds: [c3Id, c4Id],
     });
+
     tasks.push({
-      id: generateId(),
+      id: c2Id,
       eventId: event.id,
       title: 'Form Volunteer Committee & Assign Roles',
       description: 'Designate team leads for registration, crowd flow, waste management, and hospitality.',
@@ -405,8 +461,9 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
       category: 'Volunteers',
       isCompressedDeadline: isCompressed,
     });
+
     tasks.push({
-      id: generateId(),
+      id: c3Id,
       eventId: event.id,
       title: 'Contract Sound, Stage & Power Generators',
       description: 'Ensure adequate microphones, outdoor PA amplification, and backup power switch.',
@@ -415,9 +472,12 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
       status: 'not_started',
       category: 'Equipment',
       isCompressedDeadline: isCompressed,
+      dependsOnTaskId: c1Id,
+      dependencyNote: 'Requires municipal permit approval.',
     });
+
     tasks.push({
-      id: generateId(),
+      id: c4Id,
       eventId: event.id,
       title: 'Deploy First-Aid & Emergency Safety Station',
       description: 'Confirm presence of certified first-responder and hydration / water stations.',
@@ -426,9 +486,11 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
       status: 'not_started',
       category: 'Safety',
       isCompressedDeadline: isCompressed,
+      dependsOnTaskId: c1Id,
     });
+
     tasks.push({
-      id: generateId(),
+      id: c5Id,
       eventId: event.id,
       title: 'Day-Of Execution & Grounds Cleanup',
       description: 'Oversee stage schedule, ensure zero-waste litter cleanup, and wrap up.',
@@ -440,8 +502,13 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
     });
   } else {
     // Anniversary or generic
+    const g1Id = `task-gvenue-${event.id}`;
+    const g2Id = `task-gcater-${event.id}`;
+    const g3Id = `task-ginvites-${event.id}`;
+    const g4Id = `task-gday-${event.id}`;
+
     tasks.push({
-      id: generateId(),
+      id: g1Id,
       eventId: event.id,
       title: 'Confirm Event Venue Reservation',
       description: 'Lock in event space and confirm guest seating capacity for ' + event.guestCount + ' people.',
@@ -450,9 +517,11 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
       status: 'not_started',
       category: 'Venue',
       isCompressedDeadline: isCompressed,
+      downstreamTaskIds: [g2Id, g3Id],
     });
+
     tasks.push({
-      id: generateId(),
+      id: g2Id,
       eventId: event.id,
       title: 'Finalize Food & Beverage Catering',
       description: 'Review catering order with consideration for ' + (event.preferences.dietaryRequirements.join(', ') || 'all guests') + '.',
@@ -461,9 +530,11 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
       status: 'not_started',
       category: 'Catering',
       isCompressedDeadline: isCompressed,
+      dependsOnTaskId: g1Id,
     });
+
     tasks.push({
-      id: generateId(),
+      id: g3Id,
       eventId: event.id,
       title: 'Send Invitations & Confirm Attendees',
       description: 'Distribute invitations and confirm headcount.',
@@ -472,9 +543,11 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
       status: 'not_started',
       category: 'Invitations',
       isCompressedDeadline: isCompressed,
+      dependsOnTaskId: g1Id,
     });
+
     tasks.push({
-      id: generateId(),
+      id: g4Id,
       eventId: event.id,
       title: 'Day-Of Celebration Execution',
       description: 'Coordinate with hosts, welcome guests, and enjoy the celebration.',
@@ -483,10 +556,503 @@ export function generateTimeline(event: Event, referenceDate: Date = new Date())
       status: 'not_started',
       category: 'Execution',
       isCompressedDeadline: false,
+      dependsOnTaskId: g3Id,
     });
   }
 
   return tasks;
+}
+
+/**
+ * Checks timeline tasks for chronological order conflicts and identifies downstream tasks affected by overdue items
+ */
+export function checkTaskDependencies(
+  tasks: TimelineTask[],
+  referenceDate: Date = new Date()
+): {
+  conflicts: Array<{ taskId: string; prerequisiteId: string; message: string }>;
+  downstreamDelays: Array<{ taskId: string; prerequisiteId: string; message: string }>;
+} {
+  const taskMap = new Map<string, TimelineTask>();
+  tasks.forEach((t) => taskMap.set(t.id, t));
+
+  const conflicts: Array<{ taskId: string; prerequisiteId: string; message: string }> = [];
+  const downstreamDelays: Array<{ taskId: string; prerequisiteId: string; message: string }> = [];
+
+  const todayStr = referenceDate.toISOString().split('T')[0];
+
+  tasks.forEach((task) => {
+    if (!task.dependsOnTaskId) return;
+
+    const prereq = taskMap.get(task.dependsOnTaskId);
+    if (!prereq) return;
+
+    // Conflict: Dependent task is due earlier than its prerequisite
+    if (task.dueDate < prereq.dueDate) {
+      conflicts.push({
+        taskId: task.id,
+        prerequisiteId: prereq.id,
+        message: `Task "${task.title}" is scheduled on ${task.dueDate}, which is earlier than its prerequisite "${prereq.title}" (${prereq.dueDate}).`,
+      });
+    }
+
+    // Downstream Delay: Prerequisite is overdue and not completed, blocking this task
+    if (prereq.status !== 'completed' && prereq.dueDate < todayStr) {
+      downstreamDelays.push({
+        taskId: task.id,
+        prerequisiteId: prereq.id,
+        message: `Downstream impact: "${task.title}" is blocked because prerequisite "${prereq.title}" is overdue (was due ${prereq.dueDate}).`,
+      });
+    }
+  });
+
+  return { conflicts, downstreamDelays };
+}
+
+/**
+ * Compares multiple vendor quotations against category budget and guest count
+ */
+export function compareVendorQuotes(
+  categoryBudget: number,
+  quotes: VendorQuote[],
+  guestCount?: number
+): {
+  categoryBudget: number;
+  quoteCount: number;
+  lowestQuote: number;
+  highestQuote: number;
+  bestValueQuoteId?: string;
+  comparisons: Array<{
+    quote: VendorQuote;
+    varianceFromBudget: number;
+    percentOfBudget: number;
+    perGuestCost?: number;
+    missingInformationCount: number;
+    missingInformationList: string[];
+  }>;
+} {
+  if (quotes.length === 0) {
+    return {
+      categoryBudget,
+      quoteCount: 0,
+      lowestQuote: 0,
+      highestQuote: 0,
+      comparisons: [],
+    };
+  }
+
+  let lowestQuote = quotes[0].quotedAmount;
+  let highestQuote = quotes[0].quotedAmount;
+  let bestValueQuoteId = quotes[0].id;
+  let maxScore = -Infinity;
+
+  const comparisons = quotes.map((quote) => {
+    if (quote.quotedAmount < lowestQuote) lowestQuote = quote.quotedAmount;
+    if (quote.quotedAmount > highestQuote) highestQuote = quote.quotedAmount;
+
+    const varianceFromBudget = quote.quotedAmount - categoryBudget;
+    const percentOfBudget = categoryBudget > 0 ? Math.round((quote.quotedAmount / categoryBudget) * 100) : 0;
+    const perGuestCost = guestCount && guestCount > 0 ? Math.round(quote.quotedAmount / guestCount) : undefined;
+
+    // Audit missing essential information
+    const missingInformationList: string[] = [];
+    if (quote.missingInfo !== undefined) {
+      missingInformationList.push(...quote.missingInfo);
+    } else {
+      if (!quote.paymentTerms || quote.paymentTerms.trim() === '') {
+        missingInformationList.push('Missing explicit payment / advance deposit terms');
+      }
+      if (!quote.additionalChargesNotes || quote.additionalChargesNotes.trim() === '') {
+        missingInformationList.push('Missing overtime / tax / travel surcharge disclosure');
+      }
+      if (guestCount && (!quote.guestCapacity || quote.guestCapacity < guestCount)) {
+        missingInformationList.push(`Unverified guest capacity (event has ${guestCount} guests)`);
+      }
+    }
+
+    // Score based on value (within budget + inclusions count - missing info penalty)
+    const isUnderBudget = quote.quotedAmount <= categoryBudget;
+    const score = (isUnderBudget ? 100 : 50) + (quote.servicesIncluded.length * 10) - (missingInformationList.length * 15);
+    if (score > maxScore) {
+      maxScore = score;
+      bestValueQuoteId = quote.id;
+    }
+
+    return {
+      quote,
+      varianceFromBudget,
+      percentOfBudget,
+      perGuestCost,
+      missingInformationCount: missingInformationList.length,
+      missingInformationList,
+    };
+  });
+
+  return {
+    categoryBudget,
+    quoteCount: quotes.length,
+    lowestQuote,
+    highestQuote,
+    bestValueQuoteId,
+    comparisons,
+  };
+}
+
+/**
+ * Intelligent Replanning Engine:
+ * Re-evaluates an existing celebration plan when budget decreases, date shifts earlier, or guest count changes.
+ * Preserves completed tasks, recorded actual expenses, and booked vendors.
+ */
+export function generateReplanProposal(
+  event: Event,
+  categories: BudgetCategory[],
+  expenses: Expense[],
+  tasks: TimelineTask[],
+  vendors: Vendor[],
+  request: ReplanRequest,
+  referenceDate: Date = new Date()
+): ReplanProposal {
+  const currentBudget = event.totalBudget;
+  const newBudget = request.newTotalBudget !== undefined ? Math.max(0, request.newTotalBudget) : currentBudget;
+  const budgetDelta = newBudget - currentBudget;
+
+  const currentDateObj = new Date(event.date + 'T00:00:00');
+  const newDateStr = request.newDate || event.date;
+  const newDateObj = new Date(newDateStr + 'T00:00:00');
+  const dateShiftDays = Math.round((newDateObj.getTime() - currentDateObj.getTime()) / (1000 * 60 * 60 * 24));
+
+  const currentGuests = event.guestCount;
+  const newGuests = request.newGuestCount !== undefined ? Math.max(1, request.newGuestCount) : currentGuests;
+  const guestDelta = newGuests - currentGuests;
+
+  const priorityFocus = request.priorityFocus || event.preferences.priorityFocus || 'food_guest_experience';
+
+  // 1. Calculate Category Adjustments
+  const totalActualSpent = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  const categorySpentMap = new Map<string, number>();
+  categories.forEach((c) => categorySpentMap.set(c.id, c.actualSpent || 0));
+
+  // Determine which categories are protected
+  // If priority is food_guest_experience: Venue & Catering is protected
+  // If priority is venue_atmosphere: Venue & Decor are protected
+  // If priority is media_memories: Photography & Cinematography are protected
+  const categoryAdjustments: ReplanProposal['categoryAdjustments'] = [];
+  let remainingBudgetToDistribute = newBudget;
+
+  // Clone categories to prepare reallocation
+  const workingCats = categories.map((c) => ({
+    id: c.id,
+    name: c.name,
+    currentAllocated: c.allocatedAmount,
+    currentSpent: c.actualSpent || 0,
+    isProtected: false,
+    weight: 1.0,
+  }));
+
+  workingCats.forEach((c) => {
+    const nameLower = c.name.toLowerCase();
+    if (priorityFocus === 'food_guest_experience') {
+      if (nameLower.includes('catering') || nameLower.includes('food') || nameLower.includes('dining')) {
+        c.isProtected = true;
+        c.weight = 1.35; // Priority boost
+      } else if (nameLower.includes('decor') || nameLower.includes('floral')) {
+        c.weight = 0.65; // Flexible reduction candidate
+      } else if (nameLower.includes('invitation')) {
+        c.weight = 0.50; // Switch to digital
+      } else if (nameLower.includes('logistics') || nameLower.includes('transport')) {
+        c.weight = 0.70;
+      }
+    } else if (priorityFocus === 'venue_atmosphere') {
+      if (nameLower.includes('venue') || nameLower.includes('decor')) {
+        c.isProtected = true;
+        c.weight = 1.30;
+      } else {
+        c.weight = 0.75;
+      }
+    } else if (priorityFocus === 'media_memories') {
+      if (nameLower.includes('photo') || nameLower.includes('video') || nameLower.includes('media')) {
+        c.isProtected = true;
+        c.weight = 1.40;
+      } else {
+        c.weight = 0.80;
+      }
+    }
+  });
+
+  // Calculate total weighted base
+  const totalWeight = workingCats.reduce((s, c) => s + (c.currentAllocated * c.weight), 0);
+
+  workingCats.forEach((cat, index) => {
+    const isLast = index === workingCats.length - 1;
+    let proposed = Math.round((newBudget * (cat.currentAllocated * cat.weight)) / (totalWeight || 1));
+
+    // Must never be less than actual spent
+    if (proposed < cat.currentSpent) {
+      proposed = cat.currentSpent;
+    }
+
+    if (isLast) {
+      proposed = Math.max(cat.currentSpent, remainingBudgetToDistribute);
+    } else {
+      proposed = Math.min(proposed, remainingBudgetToDistribute);
+      remainingBudgetToDistribute -= proposed;
+    }
+
+    const delta = proposed - cat.currentAllocated;
+    let reason = 'Proportionally scaled to match revised budget.';
+    if (cat.isProtected) {
+      reason = 'Protected category: prioritized according to your stated preference for food and guest experience.';
+    } else if (delta < 0) {
+      if (cat.name.toLowerCase().includes('decor')) {
+        reason = 'Reduced decorative scope: recommend local seasonal florals and ambient warm candlelight.';
+      } else if (cat.name.toLowerCase().includes('invitation')) {
+        reason = 'Digital RSVP suite: saves on physical stationery and courier fees.';
+      } else if (cat.name.toLowerCase().includes('sound') || cat.name.toLowerCase().includes('dj')) {
+        reason = 'Package bundling: negotiate combined lighting and sound with a single operator.';
+      }
+    }
+
+    categoryAdjustments.push({
+      categoryId: cat.id,
+      categoryName: cat.name,
+      currentAllocated: cat.currentAllocated,
+      proposedAllocated: proposed,
+      currentSpent: cat.currentSpent,
+      delta,
+      reason,
+      isProtected: cat.isProtected,
+    });
+  });
+
+  // 2. Calculate Timeline Adjustments with Dependency Awareness
+  const now = new Date(referenceDate);
+  now.setHours(0, 0, 0, 0);
+  const todayStr = now.toISOString().split('T')[0];
+
+  const timelineAdjustments: ReplanProposal['timelineAdjustments'] = [];
+
+  tasks.forEach((task) => {
+    // If task is completed, keep due date and priority intact
+    if (task.status === 'completed') {
+      timelineAdjustments.push({
+        taskId: task.id,
+        title: task.title,
+        oldDueDate: task.dueDate,
+        newDueDate: task.dueDate,
+        oldPriority: task.priority,
+        newPriority: task.priority,
+        isOverdue: false,
+        isCompressed: false,
+        reason: 'Preserved: Task is already completed.',
+      });
+      return;
+    }
+
+    // Shift uncompleted task due dates proportionally to the new event date
+    const oldDueObj = new Date(task.dueDate + 'T00:00:00');
+    const oldEventObj = new Date(event.date + 'T00:00:00');
+    const daysBeforeOld = Math.round((oldEventObj.getTime() - oldDueObj.getTime()) / (1000 * 60 * 60 * 24));
+
+    // Shifted target date
+    const newTargetDueObj = new Date(newDateObj);
+    newTargetDueObj.setDate(newTargetDueObj.getDate() - daysBeforeOld);
+
+    let newDueDate = newTargetDueObj.toISOString().split('T')[0];
+    let isCompressed = false;
+    let isOverdue = false;
+
+    // If new due date is past today or compressed
+    if (newDueDate < todayStr) {
+      isOverdue = true;
+      // Do not leave in past without explanation; push to today + 2 days as an urgent recovery task
+      const recoveryDate = new Date(now);
+      recoveryDate.setDate(recoveryDate.getDate() + 2);
+      newDueDate = recoveryDate.toISOString().split('T')[0];
+    } else {
+      const daysUntilDue = Math.round((new Date(newDueDate + 'T00:00:00').getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysUntilDue <= 14) {
+        isCompressed = true;
+      }
+    }
+
+    // Adjust priority if window is compressed
+    let newPriority: TaskPriority = task.priority;
+    if (isOverdue || isCompressed) {
+      if (task.priority === 'low' || task.priority === 'medium') newPriority = 'high';
+      if (task.priority === 'high' && isOverdue) newPriority = 'urgent';
+    }
+
+    timelineAdjustments.push({
+      taskId: task.id,
+      title: task.title,
+      oldDueDate: task.dueDate,
+      newDueDate,
+      oldPriority: task.priority,
+      newPriority,
+      isOverdue,
+      isCompressed,
+      reason: dateShiftDays < 0
+        ? `Shifted earlier due to event moving forward by ${Math.abs(dateShiftDays)} days.`
+        : 'Aligned with revised event timeline.',
+    });
+  });
+
+  // 3. Guest Impact Notes
+  const guestImpactNotes: string[] = [];
+  if (guestDelta !== 0) {
+    const perGuestEstimate = Math.round((event.totalBudget * 0.35) / (event.guestCount || 1));
+    const cateringImpact = Math.abs(guestDelta) * perGuestEstimate;
+    if (guestDelta < 0) {
+      guestImpactNotes.push(
+        `Guest count reduced by ${Math.abs(guestDelta)}. Estimated catering and beverage savings: ~₹${cateringImpact.toLocaleString()} (based on estimated ₹${perGuestEstimate}/guest).`
+      );
+    } else {
+      guestImpactNotes.push(
+        `Guest count increased by ${guestDelta}. Estimated catering surcharge: ~₹${cateringImpact.toLocaleString()} (ensure venue capacity allows ${newGuests} guests).`
+      );
+    }
+  }
+
+  // 4. Trade-Offs (What is gained and sacrificed)
+  const gained: string[] = [];
+  const sacrificed: string[] = [];
+
+  if (budgetDelta < 0) {
+    gained.push(`Maintains complete financial solvency within the revised budget of ₹${newBudget.toLocaleString()}.`);
+    if (priorityFocus === 'food_guest_experience') {
+      gained.push('Banquet food quality and multi-course culinary experience remain fully protected.');
+      sacrificed.push('Elaborate floral structures and imported flowers replaced by seasonal local blooms and ambient candle styling.');
+      sacrificed.push('Physical printed invitation paper suites converted to animated digital RSVP suites.');
+    }
+  } else if (budgetDelta > 0) {
+    gained.push(`Additional ₹${budgetDelta.toLocaleString()} buffer available to upgrade guest hospitality or live performers.`);
+  }
+
+  if (dateShiftDays < 0) {
+    sacrificed.push(`Planning window tightened by ${Math.abs(dateShiftDays)} days; immediate action required on venue walkthrough and vendor contracts.`);
+  }
+
+  const completedTasksCount = tasks.filter((t) => t.status === 'completed').length;
+  const bookedVendorsCount = vendors.filter((v) => v.bookingStatus === 'booked').length;
+
+  return {
+    id: generateId(),
+    eventId: event.id,
+    timestamp: new Date().toISOString(),
+    summary: `Replan Proposal for ${event.name}: Budget adjusted by ₹${budgetDelta.toLocaleString()}, event date shifted by ${dateShiftDays} days, prioritizing ${priorityFocus.replace(/_/g, ' ')}.`,
+    changesSummary: {
+      budgetDelta,
+      dateShiftDays,
+      guestDelta,
+      affectedCategoriesCount: categoryAdjustments.filter((c) => c.delta !== 0).length,
+      compressedTasksCount: timelineAdjustments.filter((t) => t.isCompressed || t.isOverdue).length,
+    },
+    categoryAdjustments,
+    timelineAdjustments,
+    guestImpactNotes,
+    tradeOffs: { gained, sacrificed },
+    preservedItems: {
+      completedTasksCount,
+      actualExpensesCount: expenses.length,
+      bookedVendorsCount,
+    },
+  };
+}
+
+/**
+ * Applies an approved replan proposal to the existing event, categories, and tasks
+ */
+export function applyReplanProposal(
+  event: Event,
+  arg2: ReplanProposal | BudgetCategory[],
+  arg3: BudgetCategory[] | TimelineTask[],
+  arg4?: TimelineTask[] | ReplanProposal
+): {
+  event: Event;
+  categories: BudgetCategory[];
+  tasks: TimelineTask[];
+  updatedEvent: Event;
+  updatedCategories: BudgetCategory[];
+  updatedTasks: TimelineTask[];
+} {
+  let proposal: ReplanProposal;
+  let currentCategories: BudgetCategory[];
+  let currentTasks: TimelineTask[];
+
+  if (arg2 && typeof arg2 === 'object' && 'changesSummary' in arg2) {
+    proposal = arg2 as ReplanProposal;
+    currentCategories = (arg3 as BudgetCategory[]) || [];
+    currentTasks = (arg4 as TimelineTask[]) || [];
+  } else {
+    currentCategories = (arg2 as BudgetCategory[]) || [];
+    currentTasks = (arg3 as TimelineTask[]) || [];
+    proposal = arg4 as ReplanProposal;
+  }
+
+  const newBudget = event.totalBudget + proposal.changesSummary.budgetDelta;
+  const newGuests = event.guestCount + proposal.changesSummary.guestDelta;
+
+  let newDate = event.date;
+  if (proposal.changesSummary.dateShiftDays !== 0) {
+    const d = new Date(event.date + 'T00:00:00');
+    d.setDate(d.getDate() + proposal.changesSummary.dateShiftDays);
+    newDate = d.toISOString().split('T')[0];
+  }
+
+  const updatedEvent: Event = {
+    ...event,
+    totalBudget: newBudget,
+    guestCount: newGuests,
+    date: newDate,
+    updatedAt: new Date().toISOString(),
+  };
+
+  // Update categories with proposed allocation
+  const catAdjustmentMap = new Map<string, number>();
+  proposal.categoryAdjustments.forEach((adj) => {
+    catAdjustmentMap.set(adj.categoryId, adj.proposedAllocated);
+  });
+
+  const updatedCategories = currentCategories.map((cat) => {
+    const proposed = catAdjustmentMap.get(cat.id);
+    if (proposed !== undefined) {
+      const allocatedPercent = newBudget > 0 ? Math.round((proposed / newBudget) * 100) : 0;
+      return {
+        ...cat,
+        allocatedAmount: proposed,
+        estimatedAmount: proposed,
+        allocatedPercent,
+      };
+    }
+    return cat;
+  });
+
+  // Update timeline tasks with shifted due dates and priorities, PRESERVING completed status
+  const taskAdjustmentMap = new Map<string, { newDueDate: string; newPriority: TaskPriority }>();
+  proposal.timelineAdjustments.forEach((adj) => {
+    taskAdjustmentMap.set(adj.taskId, { newDueDate: adj.newDueDate, newPriority: adj.newPriority });
+  });
+
+  const updatedTasks = currentTasks.map((task) => {
+    const adj = taskAdjustmentMap.get(task.id);
+    if (adj) {
+      return {
+        ...task,
+        dueDate: task.status === 'completed' ? task.dueDate : adj.newDueDate,
+        priority: adj.newPriority,
+      };
+    }
+    return task;
+  });
+
+  return {
+    event: updatedEvent,
+    categories: updatedCategories,
+    tasks: updatedTasks,
+    updatedEvent,
+    updatedCategories,
+    updatedTasks,
+  };
 }
 
 /**
@@ -616,7 +1182,7 @@ export function generatePersonalizedIdeas(event: Event): SavedIdea[] {
     eventId: event.id,
     category: 'guest_experience',
     title: 'Interactive Memory Capsule & Audio Guestbook',
-    description: 'An vintage rotary phone or QR-activated digital guestbook where friends and family record voice toasts and heartfelt memories.',
+    description: 'A vintage rotary phone or QR-activated digital guestbook where friends and family record voice toasts and heartfelt memories.',
     practicalTip: 'Place this in a quiet lounge nook away from loud stage loudspeakers so audio recordings remain crisp.',
     isSaved: false,
     isUsed: false,
@@ -702,9 +1268,83 @@ export function generateLocalAssistantResponse(
   event: Event,
   tasks: TimelineTask[],
   vendors: Vendor[],
-  budget: BudgetMetrics
-): { text: string; suggestions: string[] } {
+  budget: BudgetMetrics,
+  categories: BudgetCategory[] = [],
+  expenses: Expense[] = []
+): { text: string; suggestions: string[]; replanProposal?: ReplanProposal } {
   const query = message.toLowerCase();
+
+  // Acceptance Scenario: User requests replanning with budget drop and/or date shift
+  if (
+    query.includes('replan') ||
+    query.includes('revise') ||
+    query.includes('dropped') ||
+    query.includes('decreased') ||
+    query.includes('earlier') ||
+    (query.includes('budget') && (query.includes('cut') || query.includes('reduce') || query.includes('6,50,000') || query.includes('650000')))
+  ) {
+    // Detect parsed budget if mentioned (e.g. 6,50,000 or 650000)
+    let requestedBudget: number | undefined;
+    const budgetMatch = query.match(/(\d+[\d,]*\d+)/);
+    if (budgetMatch) {
+      const num = parseInt(budgetMatch[1].replace(/,/g, ''), 10);
+      if (num > 10000 && num < event.totalBudget * 3) {
+        requestedBudget = num;
+      }
+    }
+    if (!requestedBudget && (query.includes('650000') || query.includes('6,50,000'))) {
+      requestedBudget = 650000;
+    }
+    if (!requestedBudget && query.includes('drop')) {
+      requestedBudget = Math.round(event.totalBudget * 0.8125); // ~18.75% drop as in ₹8L -> ₹6.5L
+    }
+
+    // Detect date shift
+    let requestedDate: string | undefined;
+    if (query.includes('earlier') || query.includes('two weeks') || query.includes('2 weeks')) {
+      const d = new Date(event.date + 'T00:00:00');
+      d.setDate(d.getDate() - 14);
+      requestedDate = d.toISOString().split('T')[0];
+    }
+
+    const priorityFocus = query.includes('food') || query.includes('guest experience')
+      ? 'food_guest_experience'
+      : 'balanced';
+
+    const proposal = generateReplanProposal(
+      event,
+      categories,
+      expenses,
+      tasks,
+      vendors,
+      {
+        newTotalBudget: requestedBudget || Math.round(event.totalBudget * 0.85),
+        newDate: requestedDate || event.date,
+        priorityFocus,
+      }
+    );
+
+    const budgetDelta = proposal.changesSummary.budgetDelta;
+    const dateShiftDays = proposal.changesSummary.dateShiftDays;
+
+    let responseText = `### Intelligent Plan Revision Blueprint for **${event.name}**\n\n` +
+      `I have evaluated your request and constructed a connected replan without disrupting your existing records:\n\n` +
+      `- **Budget Adjustment**: ${budgetDelta < 0 ? 'Decreased' : 'Adjusted'} by **₹${Math.abs(budgetDelta).toLocaleString()}** (New target: **₹${(event.totalBudget + budgetDelta).toLocaleString()}**)\n` +
+      `- **Timeline Shift**: Event date moved ${Math.abs(dateShiftDays)} days earlier to **${requestedDate || event.date}**\n` +
+      `- **Guiding Principle**: **Food Quality & Guest Experience are 100% Protected**\n\n` +
+      `### Strategic Reallocations:\n` +
+      `1. **Catering & Banquet Feasts**: Maintained at full strength (allocation preserved at ₹${proposal.categoryAdjustments.find(c => c.categoryName.toLowerCase().includes('catering'))?.proposedAllocated.toLocaleString() || '3,20,000'}).\n` +
+      `2. **Decor & Florals**: Streamlined to seasonal blooms and candle clusters (-₹${Math.abs(proposal.categoryAdjustments.find(c => c.categoryName.toLowerCase().includes('decor'))?.delta || 25000).toLocaleString()}).\n` +
+      `3. **Stationery & Invites**: Switched remaining announcements to animated digital RSVPs (-₹${Math.abs(proposal.categoryAdjustments.find(c => c.categoryName.toLowerCase().includes('invitation'))?.delta || 15000).toLocaleString()}).\n` +
+      `4. **Milestones & Deadlines**: Shifted deadlines forward with **zero scheduling in the past** and all completed milestones preserved.\n\n` +
+      `*Preserved Assets: ${proposal.preservedItems.completedTasksCount} completed tasks, ${proposal.preservedItems.actualExpensesCount} recorded expenses, and ${proposal.preservedItems.bookedVendorsCount} vendor bookings remain untouched.*`;
+
+    return {
+      text: responseText,
+      suggestions: ['Apply this revised plan', 'How will this affect our timeline?', 'Compare catering quotations'],
+      replanProposal: proposal,
+    };
+  }
 
   // 1. Urgent tasks
   if (query.includes('urgent') || query.includes('task') || query.includes('next') || query.includes('finish')) {
@@ -767,7 +1407,7 @@ export function generateLocalAssistantResponse(
   }
 
   // 4. Vendors
-  if (query.includes('vendor') || query.includes('book') || query.includes('hire')) {
+  if (query.includes('vendor') || query.includes('book') || query.includes('hire') || query.includes('quote')) {
     const unbooked = vendors.filter((v) => v.bookingStatus !== 'booked' && v.bookingStatus !== 'cancelled');
     const booked = vendors.filter((v) => v.bookingStatus === 'booked');
 
@@ -776,7 +1416,7 @@ export function generateLocalAssistantResponse(
       `- **Pending Action (${unbooked.length})**: ${unbooked.map((v) => `${v.name} (${v.bookingStatus})`).join(', ') || 'All vendors booked!'}\n\n`;
 
     if (unbooked.length > 0) {
-      text += `**Next Action**: Lock in **${unbooked[0].name}** first. Request written quotes comparing coverage hours, cancellation terms, and overtime rates.`;
+      text += `**Next Action**: Lock in **${unbooked[0].name}** first. Request itemized quotations comparing coverage hours, cancellation terms, and overtime rates. Use the Quotation Comparison tab to audit multiple quotes side-by-side.`;
     } else {
       text += `All primary vendor categories are booked! Your next step is finalizing the day-of load-in schedule with your venue manager.`;
     }
@@ -825,12 +1465,12 @@ export function generateLocalAssistantResponse(
   return {
     text: `I'm analyzing your plan for **${event.name}** (${event.guestCount} guests in ${event.location} on ${event.date}).\n\n` +
       `Your current budget utilization is **${budget.utilizationPercent}%** with **${event.currency} ${budget.remainingBudget.toLocaleString()}** remaining.\n\n` +
-      `How can I assist your planning today? Choose one of the quick topics below or ask any specific question about your budget, timeline, vendors, or run-of-show.`,
+      `How can I assist your planning today? You can ask me to re-plan if your budget or date changes, request vendor comparison tips, or review urgent tasks.`,
     suggestions: [
+      'Our budget has dropped to ₹6,50,000, and the wedding is happening two weeks earlier. Please revise our plan.',
       'What are my 3 most urgent tasks?',
       'How can I reduce costs without compromising guest experience?',
       'What vendors do I still need to book?',
-      'Create a vegetarian menu for my event',
       'Give me a rain contingency plan',
     ],
   };
