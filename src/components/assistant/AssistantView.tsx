@@ -39,7 +39,7 @@ interface AssistantViewProps {
 }
 
 const DEFAULT_CHIPS = [
-  'Our budget has dropped to ₹6,50,000, and the wedding is happening two weeks earlier. We still want to prioritize food and guest experience. Please revise our plan.',
+  'Our budget has dropped by 15%, and the celebration is happening two weeks earlier. We still want to prioritize food and guest experience. Please revise our plan.',
   'What are my 3 most urgent tasks?',
   'How can I reduce costs without compromising guest experience?',
   'Suggest a dietary-friendly menu concept for our guests',
@@ -67,7 +67,7 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
         : `Welcome to CelebrAI! Please select or create a celebration to begin context-aware copilot planning.`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       suggestions: DEFAULT_CHIPS,
-      isLiveAI: hasGeminiKey,
+      isLiveAI: false,
     },
   ]);
 

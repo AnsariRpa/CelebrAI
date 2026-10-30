@@ -34,6 +34,7 @@ import {
 } from './services/planning/planningEngine';
 import { StorageService } from './services/storage/storageService';
 import { AIService } from './services/ai/aiService';
+import { formatCurrency } from './domain/validation';
 
 export default function App() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -167,7 +168,7 @@ export default function App() {
 
     // Refresh state
     loadAllData();
-    showNotification(`Plan revised! New budget: ₹${result.event.totalBudget.toLocaleString()}, date: ${result.event.date}`);
+    showNotification(`Plan revised! New budget: ${formatCurrency(result.event.totalBudget, result.event.currency)}, date: ${result.event.date}`);
   };
 
   // Quote handlers

@@ -19,7 +19,8 @@ import {
   Vendor,
   VendorQuote,
 } from '../../domain/types';
-import { generateId } from '../../domain/validation';
+import { generateId, formatCurrency } from '../../domain/validation';
+import { parseReplanIntent } from './intentParser';
 
 /**
  * Category allocation blueprints by event type
@@ -904,11 +905,11 @@ export function generateReplanProposal(
     const cateringImpact = Math.abs(guestDelta) * perGuestEstimate;
     if (guestDelta < 0) {
       guestImpactNotes.push(
-        `Guest count reduced by ${Math.abs(guestDelta)}. Estimated catering and beverage savings: ~₹${cateringImpact.toLocaleString()} (based on estimated ₹${perGuestEstimate}/guest).`
+        `Guest count reduced by ${Math.abs(guestDelta)}. Estimated catering and beverage savings: ~${formatCurrency(cateringImpact, event.currency)} (based on estimated ${formatCurrency(perGuestEstimate, event.currency)}/guest).`
       );
     } else {
       guestImpactNotes.push(
-        `Guest count increased by ${guestDelta}. Estimated catering surcharge: ~₹${cateringImpact.toLocaleString()} (ensure venue capacity allows ${newGuests} guests).`
+        `Guest count increased by ${guestDelta}. Estimated catering surcharge: ~${formatCurrency(cateringImpact, event.currency)} (ensure venue capacity allows ${newGuests} guests).`
       );
     }
   }
@@ -918,14 +919,16 @@ export function generateReplanProposal(
   const sacrificed: string[] = [];
 
   if (budgetDelta < 0) {
-    gained.push(`Maintains complete financial solvency within the revised budget of ₹${newBudget.toLocaleString()}.`);
+    gained.push(`Maintains complete financial solvency within the revised budget of ${formatCurrency(newBudget, event.currency)}.`);
     if (priorityFocus === 'food_guest_experience') {
       gained.push('Banquet food quality and multi-course culinary experience remain fully protected.');
       sacrificed.push('Elaborate floral structures and imported flowers replaced by seasonal local blooms and ambient candle styling.');
       sacrificed.push('Physical printed invitation paper suites converted to animated digital RSVP suites.');
     }
   } else if (budgetDelta > 0) {
-    gained.push(`Additional ₹${budgetDelta.toLocaleString()} buffer available to upgrade guest hospitality or live performers.`);
+    gained.push(`Additional ${formatCurrency(budgetDelta, event.currency)} buffer available to upgrade guest hospitality or live performers.`);
+  } else if (budgetDelta === 0 && dateShiftDays === 0 && guestDelta === 0) {
+    gained.push('Preserves all existing category allocations, vendor commitments, and milestone deadlines.');
   }
 
   if (dateShiftDays < 0) {
@@ -939,7 +942,7 @@ export function generateReplanProposal(
     id: generateId(),
     eventId: event.id,
     timestamp: new Date().toISOString(),
-    summary: `Replan Proposal for ${event.name}: Budget adjusted by ₹${budgetDelta.toLocaleString()}, event date shifted by ${dateShiftDays} days, prioritizing ${priorityFocus.replace(/_/g, ' ')}.`,
+    summary: `Replan Proposal for ${event.name}: Budget adjusted by ${formatCurrency(budgetDelta, event.currency)}, event date shifted by ${dateShiftDays} days, prioritizing ${priorityFocus.replace(/_/g, ' ')}.`,
     changesSummary: {
       budgetDelta,
       dateShiftDays,
@@ -1274,42 +1277,42 @@ export function generateLocalAssistantResponse(
 ): { text: string; suggestions: string[]; replanProposal?: ReplanProposal } {
   const query = message.toLowerCase();
 
-  // Acceptance Scenario: User requests replanning with budget drop and/or date shift
-  if (
-    query.includes('replan') ||
-    query.includes('revise') ||
-    query.includes('dropped') ||
-    query.includes('decreased') ||
-    query.includes('earlier') ||
-    (query.includes('budget') && (query.includes('cut') || query.includes('reduce') || query.includes('6,50,000') || query.includes('650000')))
-  ) {
-    // Detect parsed budget if mentioned (e.g. 6,50,000 or 650000)
-    let requestedBudget: number | undefined;
-    const budgetMatch = query.match(/(\d+[\d,]*\d+)/);
-    if (budgetMatch) {
-      const num = parseInt(budgetMatch[1].replace(/,/g, ''), 10);
-      if (num > 10000 && num < event.totalBudget * 3) {
-        requestedBudget = num;
-      }
-    }
-    if (!requestedBudget && (query.includes('650000') || query.includes('6,50,000'))) {
-      requestedBudget = 650000;
-    }
-    if (!requestedBudget && query.includes('drop')) {
-      requestedBudget = Math.round(event.totalBudget * 0.8125); // ~18.75% drop as in ₹8L -> ₹6.5L
-    }
-
-    // Detect date shift
-    let requestedDate: string | undefined;
-    if (query.includes('earlier') || query.includes('two weeks') || query.includes('2 weeks')) {
-      const d = new Date(event.date + 'T00:00:00');
-      d.setDate(d.getDate() - 14);
-      requestedDate = d.toISOString().split('T')[0];
+  // 0. Intelligent Replanning Intent Detection & Execution
+  const replanIntent = parseReplanIntent(message, event);
+  if (replanIntent.isReplanIntent) {
+    // If request is ambiguous without specified amounts or dates, request clarification rather than inventing numbers
+    if (replanIntent.isAmbiguous) {
+      const completedCount = tasks.filter((t) => t.status === 'completed').length;
+      const expenseCount = expenses.length;
+      return {
+        text: `### Intelligent Plan Adaptation for **${event.name}**\n\n` +
+          `I am ready to help you adapt your celebration plan, reallocate category targets, and recalibrate milestone deadlines without losing any of your **${completedCount} completed tasks** or **${expenseCount} recorded expenses**.\n\n` +
+          `**To construct an accurate blueprint, please specify your target changes:**\n` +
+          `- **New Budget**: What is your revised budget target (e.g., "${formatCurrency(Math.round(event.totalBudget * 0.8), event.currency)}" or "cut budget by 15%")?\n` +
+          `- **Timeline Shift**: Has the celebration date moved earlier or later (e.g., "two weeks earlier", or a specific date)?\n` +
+          `- **Guest Count & Priorities**: Are there changes to your ${event.guestCount} guests, or specific categories you wish to shield?\n\n` +
+          `*Alternatively, open the **Intelligent Replan** tool from the header to simulate multiple budget and date scenarios interactively.*`,
+        suggestions: [
+          'What are my 3 most urgent tasks?',
+          'How can I reduce costs without compromising guest experience?',
+          'What vendors do I still need to book?',
+          'Compare vendor quotations',
+        ],
+      };
     }
 
-    const priorityFocus = query.includes('food') || query.includes('guest experience')
-      ? 'food_guest_experience'
-      : 'balanced';
+    // Explicit parameters extracted: calculate structured replan proposal
+    const targetBudget = replanIntent.extractedBudget !== undefined
+      ? Math.max(1000, replanIntent.extractedBudget)
+      : event.totalBudget;
+
+    const targetDate = replanIntent.extractedDate || event.date;
+
+    const targetGuests = replanIntent.extractedGuestCount !== undefined
+      ? Math.max(1, replanIntent.extractedGuestCount)
+      : event.guestCount;
+
+    const priorityFocus = replanIntent.extractedPriorityFocus || event.preferences.priorityFocus || 'food_guest_experience';
 
     const proposal = generateReplanProposal(
       event,
@@ -1318,30 +1321,48 @@ export function generateLocalAssistantResponse(
       tasks,
       vendors,
       {
-        newTotalBudget: requestedBudget || Math.round(event.totalBudget * 0.85),
-        newDate: requestedDate || event.date,
+        newTotalBudget: targetBudget,
+        newDate: targetDate,
+        newGuestCount: targetGuests,
         priorityFocus,
       }
     );
 
     const budgetDelta = proposal.changesSummary.budgetDelta;
     const dateShiftDays = proposal.changesSummary.dateShiftDays;
+    const guestDelta = proposal.changesSummary.guestDelta;
+
+    const protectedCats = proposal.categoryAdjustments.filter((c) => c.isProtected);
+    const trimmedCats = proposal.categoryAdjustments.filter((c) => c.delta < 0);
+
+    let reallocationsSummary = '';
+    if (protectedCats.length > 0) {
+      const names = protectedCats.map((c) => `**${c.categoryName}** (${formatCurrency(c.proposedAllocated, event.currency)})`).join(', ');
+      reallocationsSummary += `1. **Protected Priorities**: ${names} maintained to safeguard core experience.\n`;
+    }
+    if (trimmedCats.length > 0) {
+      trimmedCats.slice(0, 3).forEach((c, idx) => {
+        const itemNumber = protectedCats.length > 0 ? idx + 2 : idx + 1;
+        reallocationsSummary += `${itemNumber}. **${c.categoryName}**: Adjusted by -${formatCurrency(Math.abs(c.delta), event.currency)}. ${c.reason}\n`;
+      });
+    }
+    if (!reallocationsSummary) {
+      reallocationsSummary = '1. **Category Allocations**: Balanced across all celebration categories according to your preferences.\n';
+    }
 
     let responseText = `### Intelligent Plan Revision Blueprint for **${event.name}**\n\n` +
       `I have evaluated your request and constructed a connected replan without disrupting your existing records:\n\n` +
-      `- **Budget Adjustment**: ${budgetDelta < 0 ? 'Decreased' : 'Adjusted'} by **₹${Math.abs(budgetDelta).toLocaleString()}** (New target: **₹${(event.totalBudget + budgetDelta).toLocaleString()}**)\n` +
-      `- **Timeline Shift**: Event date moved ${Math.abs(dateShiftDays)} days earlier to **${requestedDate || event.date}**\n` +
-      `- **Guiding Principle**: **Food Quality & Guest Experience are 100% Protected**\n\n` +
+      `- **Budget Adjustment**: ${budgetDelta === 0 ? 'Maintained on target' : `${budgetDelta < 0 ? 'Decreased' : 'Adjusted'} by **${formatCurrency(Math.abs(budgetDelta), event.currency)}** (New target: **${formatCurrency(targetBudget, event.currency)}**)`}\n` +
+      `- **Timeline Shift**: ${dateShiftDays === 0 ? `Date remains on schedule: **${event.date}**` : `Event date moved ${Math.abs(dateShiftDays)} days ${dateShiftDays < 0 ? 'earlier' : 'later'} to **${targetDate}**`}\n` +
+      (guestDelta !== 0 ? `- **Guest Count**: Updated to **${targetGuests}** (${guestDelta < 0 ? '-' : '+'}${Math.abs(guestDelta)} guests)\n` : '') +
+      `- **Guiding Principle**: **${priorityFocus.replace(/_/g, ' ').toUpperCase()}** protected\n\n` +
       `### Strategic Reallocations:\n` +
-      `1. **Catering & Banquet Feasts**: Maintained at full strength (allocation preserved at ₹${proposal.categoryAdjustments.find(c => c.categoryName.toLowerCase().includes('catering'))?.proposedAllocated.toLocaleString() || '3,20,000'}).\n` +
-      `2. **Decor & Florals**: Streamlined to seasonal blooms and candle clusters (-₹${Math.abs(proposal.categoryAdjustments.find(c => c.categoryName.toLowerCase().includes('decor'))?.delta || 25000).toLocaleString()}).\n` +
-      `3. **Stationery & Invites**: Switched remaining announcements to animated digital RSVPs (-₹${Math.abs(proposal.categoryAdjustments.find(c => c.categoryName.toLowerCase().includes('invitation'))?.delta || 15000).toLocaleString()}).\n` +
-      `4. **Milestones & Deadlines**: Shifted deadlines forward with **zero scheduling in the past** and all completed milestones preserved.\n\n` +
-      `*Preserved Assets: ${proposal.preservedItems.completedTasksCount} completed tasks, ${proposal.preservedItems.actualExpensesCount} recorded expenses, and ${proposal.preservedItems.bookedVendorsCount} vendor bookings remain untouched.*`;
+      reallocationsSummary +
+      `\n*Preserved Assets: ${proposal.preservedItems.completedTasksCount} completed tasks, ${proposal.preservedItems.actualExpensesCount} recorded expenses, and ${proposal.preservedItems.bookedVendorsCount} vendor bookings remain untouched.*`;
 
     return {
       text: responseText,
-      suggestions: ['Apply this revised plan', 'How will this affect our timeline?', 'Compare catering quotations'],
+      suggestions: ['Apply this revised plan', 'How will this affect our timeline?', 'Compare vendor quotations'],
       replanProposal: proposal,
     };
   }
@@ -1467,7 +1488,7 @@ export function generateLocalAssistantResponse(
       `Your current budget utilization is **${budget.utilizationPercent}%** with **${event.currency} ${budget.remainingBudget.toLocaleString()}** remaining.\n\n` +
       `How can I assist your planning today? You can ask me to re-plan if your budget or date changes, request vendor comparison tips, or review urgent tasks.`,
     suggestions: [
-      'Our budget has dropped to ₹6,50,000, and the wedding is happening two weeks earlier. Please revise our plan.',
+      'Our budget has dropped by 15%, and the celebration is happening two weeks earlier. Please revise our plan.',
       'What are my 3 most urgent tasks?',
       'How can I reduce costs without compromising guest experience?',
       'What vendors do I still need to book?',

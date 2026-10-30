@@ -10,6 +10,7 @@ import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import { generateLocalAssistantResponse } from './src/services/planning/planningEngine';
+import { parseReplanIntent } from './src/services/planning/intentParser';
 
 dotenv.config();
 
@@ -61,18 +62,11 @@ app.post('/api/assistant/chat', async (req: Request, res: Response): Promise<voi
 
     const message = rawMessage.trim().slice(0, 2000);
 
-    // Check if the prompt triggers intelligent replanning so we can attach structured proposal
-    const query = message.toLowerCase();
-    const isReplanIntent =
-      query.includes('replan') ||
-      query.includes('revise') ||
-      query.includes('dropped') ||
-      query.includes('decreased') ||
-      query.includes('earlier') ||
-      (query.includes('budget') && (query.includes('cut') || query.includes('reduce') || query.includes('6,50,000') || query.includes('650000')));
+    // Structured replan intent detection without hardcoded amounts or demonstration assumptions
+    const parsedIntent = parseReplanIntent(message, event);
 
     let potentialReplanProposal = undefined;
-    if (event && isReplanIntent) {
+    if (event && parsedIntent.isReplanIntent && parsedIntent.hasExplicitParameters) {
       const replanEval = generateLocalAssistantResponse(
         message,
         event,

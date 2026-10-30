@@ -51,8 +51,9 @@ celebr-ai/
 │   │   ├── types.ts          # Strongly-typed domain interfaces
 │   │   └── validation.ts     # Input validation, currency formatters, UUIDs
 │   ├── services/
-│   │   ├── planning/         # Pure deterministic planning engine
-│   │   │   └── planningEngine.ts # Budget blueprints, date math, readiness score
+│   │   ├── planning/         # Pure deterministic planning & replanning engine
+│   │   │   ├── planningEngine.ts # Budget blueprints, date math, readiness score, replanning
+│   │   │   └── intentParser.ts   # Natural language replan intent & parameter parser
 │   │   ├── storage/          # LocalStorage abstraction with versioning
 │   │   │   └── storageService.ts
 │   │   └── ai/               # Client AI service & status probing
@@ -60,15 +61,16 @@ celebr-ai/
 │   ├── components/           # Modular UI components
 │   │   ├── layout/           # Top bar header, sidebar, mobile navigation
 │   │   ├── dashboard/        # Overview KPIs, countdown, upcoming milestones
-│   │   ├── events/           # Portfolio management, 4-step wizard modal
+│   │   ├── events/           # Portfolio management, 4-step wizard modal, replan modal
 │   │   ├── budget/           # Budget management, expense logger, visual bar
 │   │   ├── timeline/         # Chronological milestones, status toggles
-│   │   ├── vendors/          # Vendor directory, contracts, checklists
+│   │   ├── vendors/          # Vendor directory, contracts, quotes comparison matrix
 │   │   ├── ideas/            # Contextual concepts (themes, menus, rain plans)
 │   │   ├── assistant/        # Conversational copilot with prompt chips
 │   │   └── common/           # Printable run-of-show summary
-│   ├── __tests__/            # Automated unit tests with Vitest
-│   │   └── planning.test.ts  # 15+ comprehensive unit tests
+│   ├── __tests__/            # Automated unit and regression tests with Vitest
+│   │   ├── planning.test.ts  # 31 comprehensive unit tests
+│   │   └── replan_regression.test.ts # 10 replanning & intent regression tests
 │   ├── App.tsx               # Root application coordinator
 │   └── main.tsx              # React DOM entry point
 ├── server.ts                 # Full-stack Express backend with Gemini API proxy
