@@ -144,26 +144,44 @@ ${urgentTasks || 'None at this moment.'}`;
           parts: [{ text: message }],
         });
 
-        const geminiPromise = ai.models.generateContent({
-          model: 'gemini-3.8-flash',
-          contents,
-          config: {
-            systemInstruction,
-            temperature: 0.7,
-          },
-        });
+        // Adaptive Live Gemini call strategy:
+        // Try gemini-3.1-flash-lite / gemini-3.5-flash with resilient timeout
+        const candidateModels = ['gemini-3.1-flash-lite', 'gemini-3.5-flash', 'gemini-3.8-flash'];
+        let liveResultText = '';
+        let modelUsedName = '';
 
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Gemini call timeout')), 6500)
-        );
+        for (const candidateModel of candidateModels) {
+          try {
+            const geminiPromise = ai.models.generateContent({
+              model: candidateModel,
+              contents,
+              config: {
+                systemInstruction,
+                temperature: 0.7,
+              },
+            });
 
-        const response = await Promise.race([geminiPromise, timeoutPromise]);
+            const timeoutPromise = new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error(`${candidateModel} call timeout`)), 9500)
+            );
 
-        const responseText = response.text || '';
-        if (responseText.trim().length > 0) {
+            const response = await Promise.race([geminiPromise, timeoutPromise]);
+            const responseText = response.text || '';
+            if (responseText.trim().length > 0) {
+              liveResultText = responseText;
+              modelUsedName = candidateModel;
+              break;
+            }
+          } catch (modelErr) {
+            console.warn(`[CelebrAI] ${candidateModel} failed or timed out:`, (modelErr as Error)?.message || modelErr);
+          }
+        }
+
+        if (liveResultText.trim().length > 0) {
           res.json({
-            text: responseText,
+            text: liveResultText,
             isLiveAI: true,
+            modelUsed: modelUsedName,
             replanProposal: potentialReplanProposal,
             suggestions: potentialReplanProposal
               ? [
@@ -182,8 +200,7 @@ ${urgentTasks || 'None at this moment.'}`;
           return;
         }
       } catch (geminiError) {
-        console.warn('[CelebrAI] Gemini API call failed, falling back to local planning engine:', geminiError);
-        // Seamlessly continue to deterministic fallback below
+        console.warn('[CelebrAI] Live Gemini pipeline failed, falling back to local planning engine:', geminiError);
       }
     }
 

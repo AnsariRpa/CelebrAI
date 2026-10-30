@@ -8,6 +8,7 @@ import {
   ChecklistItem,
   Event,
   EventExportData,
+  ChatMessage,
   Expense,
   SavedIdea,
   TimelineTask,
@@ -32,7 +33,11 @@ const STORAGE_KEYS = {
   QUOTES: 'celebr_ai_quotes_v2',
   CHECKLIST: 'celebr_ai_checklist_v2',
   IDEAS: 'celebr_ai_ideas_v2',
+  CHAT_HISTORY: 'celebr_ai_chat_history_v2',
 };
+
+// Memory store fallback for test/SSR environments
+const memoryStore: Record<string, string> = {};
 
 // Safe wrapper around window.localStorage
 function safeGetItem(key: string): string | null {
@@ -43,7 +48,7 @@ function safeGetItem(key: string): string | null {
   } catch (err) {
     console.warn(`[CelebrAI Storage] Could not read ${key} from localStorage:`, err);
   }
-  return null;
+  return memoryStore[key] ?? null;
 }
 
 function safeSetItem(key: string, value: string): boolean {
@@ -55,7 +60,8 @@ function safeSetItem(key: string, value: string): boolean {
   } catch (err) {
     console.error(`[CelebrAI Storage] Error saving ${key} to localStorage:`, err);
   }
-  return false;
+  memoryStore[key] = value;
+  return true;
 }
 
 /**
@@ -628,6 +634,50 @@ export class StorageService {
       return { success: true, eventId: newEventId };
     } catch (err) {
       return { success: false, error: 'Malformed JSON file: ' + (err instanceof Error ? err.message : String(err)) };
+    }
+  }
+
+  // Chat History Persistence
+  static getChatHistory(eventId?: string): ChatMessage[] {
+    const raw = safeGetItem(STORAGE_KEYS.CHAT_HISTORY);
+    if (!raw) return [];
+    try {
+      const all: Record<string, ChatMessage[]> = JSON.parse(raw);
+      if (eventId) {
+        return Array.isArray(all[eventId]) ? all[eventId] : [];
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  }
+
+  static saveChatHistory(eventId: string, messages: ChatMessage[]): void {
+    if (!eventId) return;
+    const raw = safeGetItem(STORAGE_KEYS.CHAT_HISTORY);
+    let all: Record<string, ChatMessage[]> = {};
+    if (raw) {
+      try {
+        all = JSON.parse(raw);
+      } catch {
+        all = {};
+      }
+    }
+    // Limit stored messages per event to 50 turns to preserve storage quota
+    all[eventId] = messages.slice(-50);
+    safeSetItem(STORAGE_KEYS.CHAT_HISTORY, JSON.stringify(all));
+  }
+
+  static clearChatHistory(eventId: string): void {
+    if (!eventId) return;
+    const raw = safeGetItem(STORAGE_KEYS.CHAT_HISTORY);
+    if (!raw) return;
+    try {
+      const all: Record<string, ChatMessage[]> = JSON.parse(raw);
+      delete all[eventId];
+      safeSetItem(STORAGE_KEYS.CHAT_HISTORY, JSON.stringify(all));
+    } catch {
+      // noop
     }
   }
 }

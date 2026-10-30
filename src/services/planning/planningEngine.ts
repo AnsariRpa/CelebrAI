@@ -1470,7 +1470,74 @@ export function generateLocalAssistantResponse(
     };
   }
 
-  // 6. Activities / guest engagement
+  // 6. Cake & Bakery Specialization
+  if (query.includes('cake') || query.includes('dessert') || query.includes('sweet') || query.includes('bakery') || query.includes('flavor')) {
+    if (event.type === 'birthday') {
+      return {
+        text: `### Curated Cake & Sweet Table Concepts for ${event.name} (${event.guestCount} guests):\n\n` +
+          `1. **"Confetti Cloud" (Vanilla Bean & Fresh Berry Compote)**:\n` +
+          `   - Light golden vanilla sponge with fun rainbow crumb layering, filled with crushed strawberry cream. Approachable and universally loved by all ages.\n\n` +
+          `2. **"Cookies & Cream Ganache" (Rich Chocolate & Oreo Swirl)**:\n` +
+          `   - Tender cocoa sponge paired with whipped white chocolate Oreo buttercream. Rich, visually striking, and holds up well at room temperature.\n\n` +
+          `3. **"Tropical Mango Sunshine" (Seasonal Mango & Passionfruit Mousse)**:\n` +
+          `   - Zesty, refreshing, and naturally sweet—ideal for afternoon parties. Pairs wonderfully with fresh fruit skewers on the side.\n\n` +
+          `*Portioning Guide: For ${event.guestCount} guests, a 2-tier 3.5 kg cake or a 2 kg centerpiece cake accompanied by 30 mini cupcakes ensures fast, clean cake cutting without long queues.*`,
+        suggestions: ['Suggest 3 engaging party activities', 'What are my most urgent tasks?', 'How to track bakery expenses?'],
+      };
+    } else {
+      return {
+        text: `### Designer Cake & Confectionery Blueprint for ${event.name} (${event.preferences.style} style):\n\n` +
+          `1. **Artisanal Floral Tier (Pistachio & Rose Water Cardamom)**:\n` +
+          `   - Textured buttercream adorned with pressed edible petals and delicate gold leaf foil, honoring the celebration's aesthetic.\n\n` +
+          `2. **Belgian Dark Chocolate & Salted Caramel Crunch**:\n` +
+          `   - Decadent layered chocolate mousse with hazelnut praline crunch—a sophisticated crowd-pleaser for evening celebrations.\n\n` +
+          `3. **Meyer Lemon Curd & Elderflower Sponge**:\n` +
+          `   - Refreshing, light palate-cleanser tier that complements multi-course banquets without feeling heavy.\n\n` +
+          `*Logistics Tip: Confirm refrigeration access at ${event.location} with your venue coordinator and schedule bakery delivery 2 hours prior to guest arrival.*`,
+        suggestions: ['Suggest a full menu concept', 'Compare catering quotations', 'Review vendor booking deadlines'],
+      };
+    }
+  }
+
+  // 7. Decor, Florals & Ambience
+  if (query.includes('decor') || query.includes('floral') || query.includes('flower') || query.includes('light') || query.includes('theme') || query.includes('backdrop')) {
+    return {
+      text: `### Atmosphere & Decor Concept for ${event.name} (${event.venuePreference} venue, ${event.preferences.style} style):\n\n` +
+        `1. **Focal Welcome Archway**: Frame the primary guest entrance with structured greenery, textured fabrics, and personalized welcoming signage.\n` +
+        `2. **Warm Ambient Illuminations**: Cluster warm 2700K fairy string lights, glass hurricane candles, and battery-operated pillar lanterns to create an inviting golden-hour glow.\n` +
+        `3. **Tabletop Vignettes**: Use seasonal local florals in mismatched brass or ceramic vessels instead of oversized centerpieces, ensuring guests can converse freely across dining tables.\n` +
+        `4. **Interactive Photo Backdrop**: Create a dedicated memory photo station featuring a bespoke neon or wooden family crest flanked by cascading foliage.\n\n` +
+        `*Budget Strategy: Re-purpose ceremonial backdrop florals to frame the head dining table during dinner to save up to 25% on floral allocations.*`,
+      suggestions: ['How can I reduce decor costs?', 'Rain contingency plan', 'What vendors do I still need to book?'],
+    };
+  }
+
+  // 8. Photography & Memories
+  if (query.includes('photo') || query.includes('camera') || query.includes('video') || query.includes('cinemat') || query.includes('album')) {
+    return {
+      text: `### Photography & Visual Coverage Strategy for ${event.name}:\n\n` +
+        `1. **Golden Hour Portrait Window**: Reserve a 45-minute window before sunset specifically for portraits of the celebrants and immediate family.\n` +
+        `2. **Must-Have Shot Checklist**: Share a pre-vetted shot list with your photographer (candid guest laughs, emotional parent moments, detail shots of decor and cake).\n` +
+        `3. **Unobtrusive Candid Filming**: Request a documentary-style cinema reel (3–5 minute highlight clip set to meaningful acoustic music) for easy mobile sharing.\n` +
+        `4. **Day-of Photo Delivery Teaser**: Negotiate 10 edited preview frames delivered within 24 hours of the event for immediate social sharing.\n\n` +
+        `*Audit Tip: Use CelebrAI's Quotation Comparison matrix to compare raw footage rights, turnaround times, and drone coverage inclusions across photographers.*`,
+      suggestions: ['Compare photography quotations', 'What are my urgent tasks?', 'Suggest guest activities'],
+    };
+  }
+
+  // 9. Attire, Styling & Dressing
+  if (query.includes('attire') || query.includes('dress') || query.includes('suit') || query.includes('lehenga') || query.includes('outfit') || query.includes('makeup') || query.includes('styling')) {
+    return {
+      text: `### Celebration Styling Guide for ${event.name} (${event.preferences.style} aesthetic):\n\n` +
+        `1. **Color Harmony**: Align attire tones with the event palette; rich jewel tones (emerald, deep sapphire, burgundy) or soft pastels (sage, champagne, blush) photograph exceptionally well.\n` +
+        `2. **Comfort & Movement**: Ensure footwear and ceremonial garments allow 6+ hours of active socializing and dancing.\n` +
+        `3. **Fitting Timeline**: Schedule final garment alterations 14 days prior to the event, followed by a final try-on session 3 days before.\n` +
+        `4. **Emergency Day-of Styling Kit**: Pack safety pins, garment tape, fabric stain wipes, blister patches, and miniature sewing kit in your host bag.`,
+      suggestions: ['What are my most urgent tasks?', 'Suggest decor styling', 'Check timeline milestones'],
+    };
+  }
+
+  // 10. Activities / guest engagement
   if (query.includes('activity') || query.includes('game') || query.includes('entertainment') || query.includes('idea')) {
     return {
       text: `### 3 Guest Engagement Ideas for ${event.guestCount} Guests at your ${event.type}:\n\n` +

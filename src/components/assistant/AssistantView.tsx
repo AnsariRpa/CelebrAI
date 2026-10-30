@@ -26,6 +26,7 @@ import {
   Vendor,
 } from '../../domain/types';
 import { AIService } from '../../services/ai/aiService';
+import { StorageService } from '../../services/storage/storageService';
 
 interface AssistantViewProps {
   event: Event | null;
@@ -58,23 +59,42 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
   hasGeminiKey,
   onOpenReplanModal,
 }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>(() => [
-    {
-      id: 'welcome-01',
-      role: 'assistant',
-      text: event
-        ? `Welcome! I'm your CelebrAI Copilot for **${event.name}** (${event.guestCount} guests in ${event.location} on ${event.date}).\n\nI have complete real-time awareness of your budget status, date-aware timeline deadlines, and vendor progress. How can I assist your planning today?`
-        : `Welcome to CelebrAI! Please select or create a celebration to begin context-aware copilot planning.`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      suggestions: DEFAULT_CHIPS,
-      isLiveAI: false,
-    },
-  ]);
+  const defaultWelcomeMessage: ChatMessage = {
+    id: 'welcome-01',
+    role: 'assistant',
+    text: event
+      ? `Welcome! I'm your CelebrAI Copilot for **${event.name}** (${event.guestCount} guests in ${event.location} on ${event.date}).\n\nI have complete real-time awareness of your budget status, date-aware timeline deadlines, and vendor progress. How can I assist your planning today?`
+      : `Welcome to CelebrAI! Please select or create a celebration to begin context-aware copilot planning.`,
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    suggestions: DEFAULT_CHIPS,
+    isLiveAI: false,
+    modelUsed: 'Local Planning Engine',
+  };
+
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    if (event?.id) {
+      const saved = StorageService.getChatHistory(event.id);
+      if (saved && saved.length > 0) return saved;
+    }
+    return [defaultWelcomeMessage];
+  });
 
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Sync and persist chat history per event
+  useEffect(() => {
+    if (event?.id) {
+      const saved = StorageService.getChatHistory(event.id);
+      if (saved && saved.length > 0) {
+        setMessages(saved);
+      } else {
+        setMessages([defaultWelcomeMessage]);
+      }
+    }
+  }, [event?.id]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -98,7 +118,11 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    const updatedWithUser = [...messages, userMessage];
+    setMessages(updatedWithUser);
+    if (event?.id) {
+      StorageService.saveChatHistory(event.id, updatedWithUser);
+    }
     setIsLoading(true);
 
     try {
@@ -110,7 +134,7 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
         categories,
         expenses,
         budgetMetrics,
-        history: [...messages, userMessage],
+        history: updatedWithUser,
       });
 
       const assistantMessage: ChatMessage = {
@@ -120,10 +144,15 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         suggestions: response.suggestions || DEFAULT_CHIPS,
         isLiveAI: response.isLiveAI,
+        modelUsed: response.modelUsed || (response.isLiveAI ? 'Live Gemini AI' : 'Local Planning Engine'),
         replanProposal: response.replanProposal,
       };
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      const finalMessages = [...updatedWithUser, assistantMessage];
+      setMessages(finalMessages);
+      if (event?.id) {
+        StorageService.saveChatHistory(event.id, finalMessages);
+      }
     } catch (err) {
       console.error('[CelebrAI] Assistant turn error:', err);
       setError('Encountered an issue processing your request. Please try again or choose a suggested topic below.');
@@ -138,6 +167,10 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
       handleSend();
     }
   };
+
+  // Derive active engine label from latest assistant turn or system health
+  const lastAssistantTurn = [...messages].reverse().find((m) => m.role === 'assistant');
+  const isEngineLive = Boolean(lastAssistantTurn?.isLiveAI);
 
   return (
     <div className="flex flex-col h-[calc(100vh-140px)] min-h-[500px] bg-white border border-[#e8dfcf] rounded-xl overflow-hidden shadow-xs">
@@ -161,11 +194,15 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
         <div className="flex items-center gap-2 text-xs text-[#52635b]">
           <span
             className={`w-2 h-2 rounded-full ${
-              hasGeminiKey ? 'bg-[#bd9b46]' : 'bg-[#7d8b84]'
+              isEngineLive ? 'bg-emerald-600' : hasGeminiKey ? 'bg-[#bd9b46]' : 'bg-[#7d8b84]'
             }`}
           />
           <span className="font-medium text-[11px]">
-            {hasGeminiKey ? 'Live Gemini 3.8 Flash' : 'Deterministic Planning Engine'}
+            {isEngineLive
+              ? `${lastAssistantTurn?.modelUsed || 'Live Gemini AI'} (Connected)`
+              : hasGeminiKey
+              ? 'Gemini Ready · Local Engine Standby'
+              : 'Deterministic Planning Engine'}
           </span>
         </div>
       </div>
@@ -198,9 +235,12 @@ export const AssistantView: React.FC<AssistantViewProps> = ({
                 }`}
               >
                 {/* Assistant origin marker */}
-                {!isUser && msg.isLiveAI !== undefined && (
+                {!isUser && (
                   <div className="text-[10px] text-[#7d8b84] font-mono uppercase tracking-wider mb-1.5 pb-1 border-b border-[#f0eae1] flex items-center justify-between">
-                    <span>{msg.isLiveAI ? 'Gemini 3.8 Flash Response' : 'Local Planning Engine'}</span>
+                    <span className="flex items-center gap-1.5">
+                      <span className={`w-1.5 h-1.5 rounded-full ${msg.isLiveAI ? 'bg-emerald-600' : 'bg-[#bd9b46]'}`} />
+                      {msg.modelUsed || (msg.isLiveAI ? 'Live Gemini AI Response' : 'Local Planning Engine')}
+                    </span>
                     <span>{msg.timestamp}</span>
                   </div>
                 )}

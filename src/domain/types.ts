@@ -221,6 +221,7 @@ export interface ChatMessage {
   timestamp: string;
   suggestions?: string[];
   isLiveAI?: boolean;
+  modelUsed?: string; // e.g. 'Gemini 3.1 Flash Lite', 'Gemini 3.5 Flash', or 'Local Planning Engine'
   replanProposal?: ReplanProposal; // Optional structured replan proposal attached to assistant response
 }
 

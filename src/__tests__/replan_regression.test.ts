@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   BudgetCategory,
+  ChatMessage,
   Event,
   Expense,
   ReplanProposal,
@@ -20,6 +21,7 @@ import {
   generateLocalAssistantResponse,
 } from '../services/planning/planningEngine';
 import { parseReplanIntent } from '../services/planning/intentParser';
+import { StorageService } from '../services/storage/storageService';
 
 describe('ReplanModal Defaults & Baseline Integrity Regression', () => {
   const baseEvent: Event = {
@@ -333,3 +335,181 @@ describe('Natural Language Intent Parser & Ambiguity Audit', () => {
     expect(assistantResponse.text).toContain('New Budget');
   });
 });
+
+describe('CelebrAI Assistant Specialized Fallback Domains', () => {
+  const birthdayEvent: Event = {
+    id: 'evt-bday-test',
+    name: 'Aarav 5th Birthday Adventure',
+    type: 'birthday',
+    date: '2026-11-20',
+    location: 'Mumbai',
+    venuePreference: 'indoor',
+    guestCount: 30,
+    totalBudget: 75000,
+    currency: 'INR',
+    flexibility: 'moderate',
+    planningStage: 'Planning',
+    preferences: {
+      style: 'festive',
+      dietaryRequirements: ['Nut-Free'],
+      accessibilityNeeds: [],
+    },
+    createdAt: '2026-10-01',
+    updatedAt: '2026-10-01',
+  };
+
+  const weddingEvent: Event = {
+    id: 'evt-wedding-test',
+    name: 'Aria & Rohan Wedding',
+    type: 'wedding',
+    date: '2026-12-25',
+    location: 'Udaipur',
+    venuePreference: 'outdoor',
+    guestCount: 150,
+    totalBudget: 1500000,
+    currency: 'INR',
+    flexibility: 'strict',
+    planningStage: 'Vendors',
+    preferences: {
+      style: 'elegant',
+      customStyleName: 'royal',
+      dietaryRequirements: ['Vegetarian'],
+      accessibilityNeeds: [],
+    },
+    createdAt: '2026-10-01',
+    updatedAt: '2026-10-01',
+  };
+
+  const mockMetrics = calculateBudgetMetrics(75000, [], [], []);
+
+  it('answers birthday cake flavor recommendations with specialized cake advice rather than generic budget copy', () => {
+    const res = generateLocalAssistantResponse(
+      'Recommend 3 cake flavors for a 5-year-old birthday party',
+      birthdayEvent,
+      [],
+      [],
+      mockMetrics
+    );
+
+    expect(res.text.toLowerCase()).toContain('cake');
+    expect(res.text).toContain('Confetti Cloud');
+    expect(res.text).toContain('Portioning Guide');
+    expect(res.replanProposal).toBeUndefined();
+  });
+
+  it('answers wedding cake flavor recommendations with tiered luxury pastry suggestions', () => {
+    const res = generateLocalAssistantResponse(
+      'What are some elegant cake flavors for our wedding?',
+      weddingEvent,
+      [],
+      [],
+      calculateBudgetMetrics(1500000, [], [], [])
+    );
+
+    expect(res.text.toLowerCase()).toContain('cake');
+    expect(res.text).toContain('Pistachio & Rose Water Cardamom');
+    expect(res.text).toContain('Logistics Tip');
+  });
+
+  it('provides specialized floral and ambient lighting advice when asked about decor', () => {
+    const res = generateLocalAssistantResponse(
+      'Can you recommend florals and ambient lighting ideas?',
+      weddingEvent,
+      [],
+      [],
+      mockMetrics
+    );
+
+    expect(res.text).toContain('Atmosphere & Decor Concept');
+    expect(res.text).toContain('Warm Ambient Illuminations');
+    expect(res.text).toContain('Budget Strategy');
+  });
+
+  it('provides specialized photography shotlists when asked about photos and video', () => {
+    const res = generateLocalAssistantResponse(
+      'What shots should our photographer and videographer capture?',
+      weddingEvent,
+      [],
+      [],
+      mockMetrics
+    );
+
+    expect(res.text).toContain('Photography & Visual Coverage Strategy');
+    expect(res.text).toContain('Golden Hour Portrait Window');
+    expect(res.text).toContain('Audit Tip');
+  });
+
+  it('provides specialized attire and dress code guidance when asked about styling', () => {
+    const res = generateLocalAssistantResponse(
+      'What attire and dress code should we specify for guests?',
+      weddingEvent,
+      [],
+      [],
+      mockMetrics
+    );
+
+    expect(res.text).toContain('Celebration Styling Guide');
+    expect(res.text).toContain('Color Harmony');
+    expect(res.text).toContain('Fitting Timeline');
+  });
+});
+
+describe('StorageService Per-Event Chat History Isolation', () => {
+  const eventAId = 'evt-chat-alpha';
+  const eventBId = 'evt-chat-beta';
+
+  const mockMessagesA: ChatMessage[] = [
+    {
+      id: 'msg-1',
+      role: 'user',
+      text: 'Recommend birthday cakes',
+      timestamp: '2026-10-30T10:00:00.000Z',
+    },
+    {
+      id: 'msg-2',
+      role: 'assistant',
+      text: 'Here are 3 cake flavors: Confetti Cloud, Chocolate Fudge, Strawberry Shortcake',
+      timestamp: '2026-10-30T10:00:01.000Z',
+      modelUsed: 'gemini-3.1-flash-lite',
+    },
+  ];
+
+  const mockMessagesB: ChatMessage[] = [
+    {
+      id: 'msg-3',
+      role: 'user',
+      text: 'What is our wedding timeline?',
+      timestamp: '2026-10-30T11:00:00.000Z',
+    },
+  ];
+
+  it('saves and restores chat history per event independently without leaking', () => {
+    // Save for Event A
+    StorageService.saveChatHistory(eventAId, mockMessagesA);
+    // Save for Event B
+    StorageService.saveChatHistory(eventBId, mockMessagesB);
+
+    // Retrieve A
+    const historyA = StorageService.getChatHistory(eventAId);
+    expect(historyA).toHaveLength(2);
+    expect(historyA[0].text).toBe('Recommend birthday cakes');
+    expect(historyA[1].modelUsed).toBe('gemini-3.1-flash-lite');
+
+    // Retrieve B
+    const historyB = StorageService.getChatHistory(eventBId);
+    expect(historyB).toHaveLength(1);
+    expect(historyB[0].text).toBe('What is our wedding timeline?');
+
+    // Unrelated event has empty history
+    const historyC = StorageService.getChatHistory('evt-chat-gamma');
+    expect(historyC).toEqual([]);
+  });
+
+  it('clears chat history for a specific event while retaining other events', () => {
+    StorageService.clearChatHistory(eventAId);
+
+    expect(StorageService.getChatHistory(eventAId)).toEqual([]);
+    expect(StorageService.getChatHistory(eventBId)).toHaveLength(1);
+  });
+});
+

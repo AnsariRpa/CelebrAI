@@ -18,6 +18,7 @@ import { generateLocalAssistantResponse } from '../planning/planningEngine';
 export interface AssistantResponse {
   text: string;
   isLiveAI: boolean;
+  modelUsed?: string;
   suggestions?: string[];
   replanProposal?: ReplanProposal;
   error?: string;
@@ -87,6 +88,7 @@ export class AIService {
         return {
           text: data.text,
           isLiveAI: Boolean(data.isLiveAI),
+          modelUsed: data.modelUsed,
           suggestions: data.suggestions || [],
           replanProposal: data.replanProposal,
         };
